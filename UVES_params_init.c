@@ -12,7 +12,7 @@ int UVES_params_init(params *par) {
   par->ordsigzero=par->ordmedfrac=par->ordmedrej=par->pctllya=par->pctlred=-1.0;
   par->rsiglyal=par->rsiglyau=par->rsigredl=par->rsigredu=par->vclya=par->vcred=-1.0;
   par->vlya=par->zem=par->version=-1.0;
-  par->combmeth=par->contftyp=par->contord=par->contwgt=par->cordlya=-1;
+  par->atmask=par->combmeth=par->contftyp=par->contord=par->contwgt=par->cordlya=-1;
   par->cordred=par->dat=par->distort=par->ftyplya=par->ftypred=par->helio=par->linear=-1;
   par->macmap=par->nocont=par->nordclip=par->nordsig=par->rankspec=par->raw=par->replay=-1;
   par->save=par->scalmeth=par->nscalclip=par->thar=par->vacwl=par->macmap=par->backvers=-1;

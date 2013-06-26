@@ -32,6 +32,7 @@ int UVES_params_set(params *par) {
   if (par->zem==-1.0) par->zem=ZEM;
   if (par->version==-1.0) par->version=VERSION;
 
+  if (par->atmask==-1) par->atmask=0;
   if (par->combmeth==-1) par->combmeth=COMBMETH;
   if (par->contftyp==-1) par->contftyp=CONTFTYP;
   if (par->contord==-1) par->contord=CONTORD;
