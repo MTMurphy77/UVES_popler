@@ -1,0 +1,1 @@
+../idxdmin.c

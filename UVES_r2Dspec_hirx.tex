@@ -1,0 +1,40 @@
+\documentclass[12pt]{article}
+
+\newcommand{\Npix}{\hbox{$N_{\rm pix}$}}
+\newcommand{\Nord}{\hbox{$N_{\rm ord}$}}
+\newcommand{\Nx}{\hbox{$N_{\rm x}$}}
+\newcommand{\No}{\hbox{$N_{\rm o}$}}
+
+\begin{document}
+
+\section{Wavelength scale for HIRES\_REDUX files}
+
+A 2D Legendre polynomial fit to the ThAr exposure provides a 2D
+wavelength solution as a function of pixel coordinate in the
+dispersion direction, $x$, and echelle diffraction order, $o$, of the
+form
+\begin{equation}
+\lambda(x,o) = \frac{1}{o} \sum_{m=0}^{\Nx-1} \sum_{n=0}^{\No-1} C_{mn}P_m(x^\prime)P_n(o^\prime)\,,
+\end{equation}
+where $P_m(x^\prime)$ and $P_n(o^\prime)$ are the $m$th and $n$th
+coefficients for the Legendre polynomials of order $\Nx$ and $\No$
+respectively. The normalized values of $x$ and $o$ are used here:
+\begin{equation}
+x^\prime\equiv2(x-a_0)/a_1~~~~~\&~~~~~o^\prime\equiv2(o-b_0)/b_1\,,
+\end{equation}
+where the normalizing factors, $a$ and $b$, are fairly arbitrary.
+
+It is convenient in the coding of UVES\_popler to only carry around
+coefficients for the wavelength solution particular to each echelle
+order, $o$,
+\begin{equation}
+A_m(o) \equiv \frac{1}{o} \sum_{n=0}^{\No-1} C_{mn}P_n(o^\prime)
+\end{equation}
+so that the wavelength anywhere along that order can be calculated
+quickly and without reference to the coefficients relevant to other
+orders,
+\begin{equation}
+\lambda(x; o) = \sum_{m=0}^{\Nx-1} A_m(o)P_m(x^\prime)\,.
+\end{equation}
+
+\end{document}
