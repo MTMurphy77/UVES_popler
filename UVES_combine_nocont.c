@@ -93,8 +93,21 @@ int UVES_combine_nocont(spectrum *spec, int nspec, cspectrum *cspec, int **comb,
     if (!ndat) {
       cspec->fl[l]=0.0; cspec->er[l]=cspec->ef[l]=cspec->res[l]=-INFIN;
       cspec->csq[l]=cspec->ccsq[l]=0.0; cspec->ncb[l]=cspec->nccb[l]=0;
+      /* Pre-version 0.66, a distinction was made between cases where
+	 no pixels were even available to be combined and where some
+	 were available but they were all clipped (for whatever
+	 reason). In the first case, the NCLIP flag was applied to the
+	 combined spectrum, but in the latter case the status flag of
+	 the first available contributing pixel was inherited by the
+	 combined spectrum. This was changed in version 0.66 because
+	 it was leading to bugs in which the spectra were recombined
+	 but were still inheriting the CCLIP flag of the previous
+	 combined spectrum. */
+      /*
       if (!cst) cspec->st[l]=NCLIP;
       else cspec->st[l]=cst;
+      */
+      cspec->st[l]=NCLIP;
     } else {
       /* Initialise clip array */
       for (i=0; i<ndat; i++) clip[i]=1;

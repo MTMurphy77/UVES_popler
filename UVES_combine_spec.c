@@ -22,9 +22,7 @@ int UVES_combine_spec(spectrum *spec, int nspec, cspectrum *cspec,
 
   /* Find maximum number of possible contributions to continuum at each
      point in combined spectrum and allocate memory to data arrays */
-  for (i=0; i<nspec; i++) {
-    for (j=0; j<spec[i].nor; j++) maxndat++; 
-  }
+  for (i=0; i<nspec; i++) maxndat=maxndat+spec[i].nor;
   if ((dat=darray(maxndat))==NULL)
     errormsg("UVES_combine_spec(): Could not allocate\n\
 \tmemory for dat array of size %d",maxndat);
@@ -61,8 +59,7 @@ int UVES_combine_spec(spectrum *spec, int nspec, cspectrum *cspec,
 		efl[ndat]=spec[i].or[j].rdef[lval];
 		med[ndat]=spec[i].or[j].rdme[lval];
 		con[ndat][0]=i; con[ndat][1]=j; con[ndat++][2]=lval;
-	      }
-	      else if (!cst) cst=spec[i].or[j].rdst[lval];
+	      } else if (!cst) cst=spec[i].or[j].rdst[lval];
 	    }
 	  }
 	}
@@ -96,10 +93,22 @@ int UVES_combine_spec(spectrum *spec, int nspec, cspectrum *cspec,
       cspec->fl[l]=cspec->co[l]; cspec->no[l]=1.0;
       cspec->er[l]=cspec->ef[l]=-INFIN; cspec->ne[l]=cspec->nf[l]=-INFIN;
       cspec->csq[l]=cspec->ccsq[l]=0.0; cspec->ncb[l]=cspec->nccb[l]=0;
+      /* Pre-version 0.66, a distinction was made between cases where
+	 no pixels were even available to be combined and where some
+	 were available but they were all clipped (for whatever
+	 reason). In the first case, the NCLIP flag was applied to the
+	 combined spectrum, but in the latter case the status flag of
+	 the first available contributing pixel was inherited by the
+	 combined spectrum. This was changed in version 0.66 because
+	 it was leading to bugs in which the spectra were recombined
+	 but were still inheriting the CCLIP flag of the previous
+	 combined spectrum. */
+      /*
       if (!cst) cspec->st[l]=NCLIP;
       else cspec->st[l]=cst;
-    }
-    else {
+      */
+      cspec->st[l]=NCLIP;
+    } else {
       /* Initialise clip array */
       for (i=0; i<ndat; i++) clip[i]=1;
       /* Gather initial statistics before sigma-clipping */

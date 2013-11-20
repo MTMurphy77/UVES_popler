@@ -17,8 +17,8 @@
 #define ISWAP(a,b)    itmp=(a);(a)=(b);(b)=itmp
 
 /* Version number, date created and UVES_popler website */
-#define VERSION       0.65    /* Version number */
-#define DATECREATE    "26th June 2013"
+#define VERSION       0.66    /* Version number */
+#define DATECREATE    "15 June 2013"
 #define WWW           "www.astronomy.swin.edu.au/~mmurphy/UVES_popler.html"
 
 /* General (non-option) Parameters */
