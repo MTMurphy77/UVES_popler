@@ -107,7 +107,9 @@ int UVES_wUPLfile(char *filename, spectrum *spec, int nspec, action *act,
     if (par->thar<=1) fprintf(data_file," %3.3d_ERRO = %s\n",i+1,spec[i].aberfile);
     if (par->thar==1) fprintf(data_file," %3.3d_THAR = %s\n",i+1,spec[i].abthfile);
     fprintf(data_file," %3.3d_WPOL = %s\n",i+1,spec[i].abwlfile);
-    if (version>=0.50) fprintf(data_file," %3.3d_VSHT = %lf\n",i+1,spec[i].vshift);
+    if (version>=0.67) fprintf(data_file," %3.3d_VSHT = %lf %lf %lf\n",i+1,
+			       spec[i].vshift,spec[i].vslope,spec[i].refwav);
+    else if (version>=0.50) fprintf(data_file," %3.3d_VSHT = %lf\n",i+1,spec[i].vshift);
     if (version>=0.56) fprintf(data_file," %3.3d_DTRT = %ld\n",i+1,spec[i].distort_seed);
   }
   if (par->filetype==FTCOMB) {

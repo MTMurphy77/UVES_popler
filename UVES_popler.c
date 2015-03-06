@@ -96,9 +96,10 @@ Mode options:\n\
  -macmap [FILE]           : Read file to map pipeline product path and file names\n\
                              between case-sensitive and case-insensitive operating\n\
                              systems, e.g. Mac and linux.\n\
- -vshift [FILE]           : Read file to apply a velocity shift to each spectrum.\n\
-                             File should specify full path name of each file to be\n\
-                             shifted, followed by the velocity shift in km/s.\n\
+ -vshift [FILE]           : Read file to apply a velocity shift(+distortion) shift\n\
+                             to each spectrum. File specifies 4 cols: file path,\n\
+                             velocity shift [km/s], slope [km/s/1000Ang], reference\n\
+                             wavelength [Ang].\n\
  -atmomask [FILE]         : Read file to mask spectra for atmospheric/telluric\n\
                              features. File should have format: wav. start, wav. end\n\
                              [Ang.], residual intensity, wav. center [Ang.].\n\
@@ -323,7 +324,7 @@ int main(int argc, char *argv[]) {
       errormsg("Error reading velocity shift file %s",par.vshiftfile);
   }
 
-  /* Read velocity shift file provided by the user */
+  /* Read the atmospheric feature mask file provided by the user */
   if (par.atmask==1) {
     if (!UVES_ratmask(&amsk,&par))
       errormsg("Error reading atmospheric mask file %s",par.atmaskfile);

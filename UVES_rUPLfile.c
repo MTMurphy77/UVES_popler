@@ -310,7 +310,7 @@ int UVES_rUPLfile(char *infile, spectrum **spec, int *nspec, action **act,
     READ_DATA_FILE;
     if (sscanf(buffer,"%d_%*s",&j)!=1) { fclose(data_file); ERR_FMT; }
     for (i=0; i<*nspec; i++) {
-      (*spec)[i].ftype=-2; (*spec)[i].vshift=0.0; (*spec)[i].distort_seed=0;
+      (*spec)[i].ftype=-2; (*spec)[i].vshift=(*spec)[i].vslope=(*spec)[i].refwav=0.0;
       while (sscanf(buffer,"%d_%*s",&k)==1 && k==j) {
 	if (sscanf(buffer,"%*d_FTYP = %d",&((*spec)[i].ftype))==1) READ_DATA_FILE;
 	if (sscanf(buffer,"%*d_PATH = %s",(*spec)[i].path)==1) READ_DATA_FILE;
@@ -318,7 +318,9 @@ int UVES_rUPLfile(char *infile, spectrum **spec, int *nspec, action **act,
 	if (sscanf(buffer," %*d_ERRO = %s",(*spec)[i].aberfile)==1) READ_DATA_FILE;
 	if (sscanf(buffer," %*d_THAR = %s",(*spec)[i].abthfile)==1) READ_DATA_FILE;
 	if (sscanf(buffer," %*d_WPOL = %s",(*spec)[i].abwlfile)==1) READ_DATA_FILE;
-	if (sscanf(buffer," %*d_VSHT = %lf",&((*spec)[i].vshift))==1) READ_DATA_FILE;
+	if (sscanf(buffer," %*d_VSHT = %lf %lf %lf",&((*spec)[i].vshift),&((*spec)[i].vslope),
+		   &((*spec)[i].refwav))==3) { READ_DATA_FILE; }
+	else if (sscanf(buffer," %*d_VSHT = %lf",&((*spec)[i].vshift))==1) { READ_DATA_FILE; }
 	if (sscanf(buffer," %*d_DTRT = %ld",&((*spec)[i].distort_seed))==1)
 	  READ_DATA_FILE;
       }

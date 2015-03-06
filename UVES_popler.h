@@ -17,8 +17,8 @@
 #define ISWAP(a,b)    itmp=(a);(a)=(b);(b)=itmp
 
 /* Version number, date created and UVES_popler website */
-#define VERSION       0.66    /* Version number */
-#define DATECREATE    "15 June 2013"
+#define VERSION       0.67    /* Version number */
+#define DATECREATE    "06 March 2015"
 #define WWW           "www.astronomy.swin.edu.au/~mmurphy/UVES_popler.html"
 
 /* General (non-option) Parameters */
@@ -358,6 +358,8 @@ typedef struct Spectrum {
   double   alt;                   /* Altitude of Observatory (meters)        */
   double   vhel;                  /* Heliocentric velocity at middle of exp. */
   double   vshift;                /* Velocity shift applied by user [km/s].  */
+  double   vslope;                /* Velocity slope " [km/s/1000Ang].        */
+  double   refwav;                /* Ref. wav. for vel. slope [Ang].        */
   int      id;                    /* Identity number for this spectrum       */
   int      comb;                  /* Is this spectrum to be combined?        */
   int      ftype;                 /* File type: UVES=0, IRAF=1, MAKEE=2,     */

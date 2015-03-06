@@ -165,7 +165,9 @@ double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, params *par)
      heliocentric frame. Just ensure that any user-supplied velocity
      shifts are applied. */
   if (par->thar==2 || spec->ftype==FTHIRX || spec->ftype==FTMAGE) {
-    vacwl=airwl; vacwl+=vacwl*spec->vshift/C_C_K;
+    vacwl=airwl;
+    // vacwl+=vacwl*spec->vshift/C_C_K;
+    vacwl+=vacwl*(spec->vshift+(vacwl-spec->refwav)*spec->vslope/1000.0)/C_C_K;
     return vacwl;
   }
 
@@ -184,7 +186,8 @@ double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, params *par)
   }
 
   /* Apply user-supplied velocity shift for this spectrum */
-  vacwl+=vacwl*spec->vshift/C_C_K;
+  // vacwl+=vacwl*spec->vshift/C_C_K;
+  vacwl+=vacwl*(spec->vshift+(vacwl-spec->refwav)*spec->vslope/1000.0)/C_C_K;
 
   return vacwl;
 

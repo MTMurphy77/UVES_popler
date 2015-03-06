@@ -168,6 +168,10 @@ errormsg("UVES_wrawFITS(): Cannot create image array %d in\n\
   vald=spec->vhel; FITS_WKEYD("HELVEL","Heliocentric velocity [km/s]");
   /* Velocity shift */
   vald=spec->vshift; FITS_WKEYD("VSHIFT","User-supplied velocity shift [km/s]");
+  /* Velocity slope */
+  vald=spec->vslope; FITS_WKEYD("VSLOPE","User-supplied velocity slope [km/s/1000Ang]");
+  /* Reference wavelength */
+  vald=spec->refwav; FITS_WKEYD("REFWAV","User-supplied reference wavelength [Ang]");
   /* Temperature near echelle grating */
   vald=spec->temp; FITS_WKEYD("TEMPGRAT","Temperature near echelle grating [C]");
   /* Atmospheric pressure */

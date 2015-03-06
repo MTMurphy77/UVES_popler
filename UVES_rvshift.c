@@ -1,6 +1,6 @@
 /****************************************************************************
-* Read in file specifying velocity shifts to be applied to individual
-* spectra.
+* Read in file specifying velocity shifts (plus higher-order
+* distortions) to be applied to individual spectra.
 ****************************************************************************/
 
 #include <stdlib.h>
@@ -13,12 +13,12 @@
   if ((cptr=fgets(buffer,LNGSTRLEN,data_file))==NULL) { fclose(data_file); \
     errormsg("UVES_rvshift(): Error reading line %d in file %s",i,infile); }
 #define ERR_FMT \
-  errormsg("UVES_rvshift(): Incorrect format in line %d\n\tof file %s",i,infile);
+  errormsg("UVES_rvshift(): Incorrect format in line %d\n\tof file %s",i+1,infile);
 
 int UVES_rvshift(spectrum **spec, int nspec, params *par) {
 
-  double vshift=0.0;
-  int    i=0,j=0,nline=0;
+  double vshift=0.0,vslope=0.0,refwav=0.0;
+  int    i=0,j=0,nline=0,ninput=0;
   char   infile[NAMELEN]="\0",buffer[LNGSTRLEN]="\0";
   char   *cptr;
   char   vshiftfile[LNGSTRLEN];
@@ -38,18 +38,20 @@ int UVES_rvshift(spectrum **spec, int nspec, params *par) {
     errormsg("UVES_rvshift(): Problem reading line %d in file\n\t%s",i,infile);
   } else { rewind(data_file); nline=i-1; }
   /* Read in data and try to match file names with those of the actual
-     spectra. If they match, record velocity shift in each spectrum's
-     structure */
+     spectra. If they match, record velocity shift and distortion
+     information in each spectrum's structure */
   for (i=0; i<nline; i++) {
     READ_DATA_FILE;
-    if (sscanf(buffer,"%s %lf",vshiftfile,&vshift)!=2) {
-      fclose(data_file); ERR_FMT;
+    vshift=vslope=refwav=0.0;
+    if ((ninput=sscanf(buffer,"%s %lf %lf %lf",vshiftfile,&vshift,&vslope,&refwav))!=4) {
+      if (ninput!=2) { fclose(data_file); ERR_FMT; }
+      else sscanf(buffer,"%s %lf",vshiftfile,&vshift);
     }
     for (j=0; j<nspec; j++) if (!strcmp(vshiftfile,(*spec)[j].file)) break;
     if (j==nspec)
       errormsg("UVES_rvshift(): Cannot find file\n\t%s\n\
 \tspecified in velocity shift file\n\t%s\n\tin list of flux files");
-    (*spec)[j].vshift=vshift;
+    (*spec)[j].vshift=vshift; (*spec)[j].vslope=vslope; (*spec)[j].refwav=refwav;
   }
   /* Close file */
   fclose(data_file);
