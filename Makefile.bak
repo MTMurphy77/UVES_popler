@@ -637,7 +637,7 @@ UVES_ratmask.o: /opt/local/include/X11/Xatom.h /opt/local/include/X11/Xos.h
 UVES_ratmask.o: /opt/local/include/X11/Xarch.h
 UVES_ratmask.o: /opt/local/include/X11/extensions/shape.h
 UVES_ratmask.o: /opt/local/include/X11/extensions/shapeconst.h charstr.h
-UVES_ratmask.o: utils.h file.h error.h
+UVES_ratmask.o: utils.h memory.h file.h error.h
 UVES_redispers.o: UVES_popler.h pg_plot.h /opt/local/include/cpgplot.h
 UVES_redispers.o: /opt/local/include/X11/Xlib.h /opt/local/include/X11/X.h
 UVES_redispers.o: /opt/local/include/X11/Xfuncproto.h

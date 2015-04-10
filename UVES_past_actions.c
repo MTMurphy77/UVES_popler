@@ -329,7 +329,8 @@ int UVES_past_actions(spectrum *spec, int nspec, cspectrum *cspec, action *act,
 	if (par->thar<=1) {
 	  for (j=0,k=cp1; j<fnp; j++,k++) {
 	    cspec->oco[k]=cspec->co[k]; scale=cspec->co[k]/fco[j];
-	    cspec->co[k]=fco[j]; cspec->no[k]*=scale; cspec->ne[k]*=scale;
+	    cspec->co[k]=fco[j]; cspec->no[k]*=scale;
+	    cspec->ne[k]*=scale; cspec->nf[k]*=scale;
 	    for (l=0; l<ncon; l++) {
 	      if (con[l][2]<=k && con[l][3]>=k) {
 		idx=k-spec[con[l][0]].or[con[l][1]].csidx;
@@ -494,7 +495,8 @@ int UVES_past_actions(spectrum *spec, int nspec, cspectrum *cspec, action *act,
 	if (par->thar<=1) {
 	  for (j=0,k=cp1; j<fnp; j++,k++) {
 	    cspec->oco[k]=cspec->co[k]; scale=cspec->co[k]/fco[j];
-	    cspec->co[k]=fco[j]; cspec->no[k]*=scale; cspec->ne[k]*=scale;
+	    cspec->co[k]=fco[j]; cspec->no[k]*=scale;
+	    cspec->ne[k]*=scale; cspec->nf[k]*=scale;
 	    for (l=0; l<ncon; l++) {
 	      if (con[l][2]<=k && con[l][3]>=k) {
 		idx=k-spec[con[l][0]].or[con[l][1]].csidx;
