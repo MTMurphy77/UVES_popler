@@ -12,6 +12,7 @@
 ****************************************************************************/
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 #include "UVES_popler.h"
 #include "memory.h"
@@ -23,6 +24,16 @@
 #include "file.h"
 */
 
+#define ERR_ARRAY { \
+    errormsg("UVES_redispers(): Cannot allocate memory for\n\
+\t%s array for redispersion of size %d for\n\
+\tspectrum in file\n\t%s",array_name,array_size,filename); }
+#define NFERR_ARRAY { \
+    nferrormsg("UVES_memspec(): Cannot allocate memory for\n\
+\t%s array of size %d\n\tfor order %d for spectrum in file\n\t%s",\
+	       array_name,array_size,l+1,filename); \
+    return 0; }
+
 int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) {
 
   double   sfrac=0.0,sfracf=0.0,sfracr=0.0,sfracesq=0.0,sfracesqi=0.0,sfracsqesq=0.0;
@@ -32,11 +43,13 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
   double   *cdat=NULL,*cerr=NULL,*cres=NULL,*cfrac=NULL; /* and sig-clipped values */
   double   *tdat=NULL,*terr=NULL,*tfrac=NULL; /* ThAr data arrays for averaging */
   double   *ctdat=NULL,*cterr=NULL,*ctfrac=NULL; /* ThAr sig-clipped values */
+  int      array_size=0;
   int      fval=0,lval=0; /* First and last valid pixels in raw order */
   int      ndat=0,ncdat=0,cst=0,maxndat=0;
   int      ntdat=0,nctdat=0,ctst=0;
   int      sidx=0,eidx=0;
   int      i=0,j=0,k=0,l=0;
+  char     array_name[NAMELEN]="\0",filename[LNGSTRLEN]="\0";
 
   /* TEMPORARY: The following to be used when creating ASCII spectra
      of individual orders */
@@ -51,6 +64,7 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
     errormsg("UVES_redispers(): Combined spectrum's wavelength\n\
 \tscale has not been set");
 
+  /** Object spectrum **/
   /* Loop over all orders */
   for (l=0; l<spec->nor; l++) {
     /* Check first to see if order is useful */
@@ -63,6 +77,7 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
       /* TEMPORARY: Create an ASCII file for each echelle order */
       /*
       cptr=strstr(spec->abfile,"fxb_"); cptr+=4; sprintf(infile,"%s",cptr);
+      // cptr=strstr(spec->abfile,"HARPN."); cptr+=6; sprintf(infile,"%s",cptr);
       cptr=strstr(infile,".fits"); sprintf(cptr,"_%02d.dat",l+1);
       data_file=faskwopen("File name for echelle order?",infile,4);
       for (i=fval; i<=lval; i++)
@@ -100,69 +115,34 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
       }
 
       /* Allocate memory to redispersed arrays */
-      if ((spec->or[l].rdfl=darray(spec->or[l].nrdp))==NULL) {
-	nferrormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor redispersed flux array for order %d of file\n\t%s",l+1,spec->file);
-	return 0;
-      }
-      if ((spec->or[l].rder=darray(spec->or[l].nrdp))==NULL) {
-	nferrormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor redispersed error array for order %d of file\n\t%s",l+1,spec->file);
-	return 0;
-      }
-      if ((spec->or[l].rdef=darray(spec->or[l].nrdp))==NULL) {
-	nferrormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor redispersed expected fluctuation array for order %d of file\n\t%s",l+1,
-		   spec->file); return 0;
-      }
-      if ((spec->or[l].rdco=darray(spec->or[l].nrdp))==NULL) {
-	nferrormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor redispersed continuum array for order %d of file\n\t%s",l+1,spec->file);
-	return 0;
-      }
-      if ((spec->or[l].ordco=darray(spec->or[l].nrdp))==NULL) {
-	nferrormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor old redispersed continuum array for order %d of file\n\t%s",l+1,spec->file);
-	return 0;
-      }
-      if ((spec->or[l].rdme=darray(spec->or[l].nrdp))==NULL) {
-	nferrormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor redispersed median error array for order %d of file\n\t%s",l+1,spec->file);
-	return 0;
-      }
-      if ((spec->or[l].rdres=darray(spec->or[l].nrdp))==NULL) {
-	nferrormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor redispersed resolution error array for order %d of file\n\t%s",l+1,spec->file);
-	return 0;
-      }
+      array_size=spec->or[l].nrdp; sprintf(filename,"%s",spec->file);
+      sprintf(array_name,"redispersed flux");
+      if ((spec->or[l].rdfl=darray(array_size))==NULL) { NFERR_ARRAY; }
+      sprintf(array_name,"redispersed error");
+      if ((spec->or[l].rder=darray(array_size))==NULL) { NFERR_ARRAY; }
+      sprintf(array_name,"redispersed expected fluctuation");
+      if ((spec->or[l].rdef=darray(array_size))==NULL) { NFERR_ARRAY; }
+      sprintf(array_name,"redispersed continuum");
+      if ((spec->or[l].rdco=darray(array_size))==NULL) { NFERR_ARRAY; }
+      sprintf(array_name,"old redispersed continuum");
+      if ((spec->or[l].ordco=darray(array_size))==NULL) { NFERR_ARRAY; }
+      sprintf(array_name,"redispersed median");
+      if ((spec->or[l].rdme=darray(array_size))==NULL) { NFERR_ARRAY; }
+      sprintf(array_name,"redispersed resolution");
+      if ((spec->or[l].rdres=darray(array_size))==NULL) { NFERR_ARRAY; }
       if (par->thar==1) {
-	if ((spec->or[l].rdth=darray(spec->or[l].nrdp))==NULL) {
-	  nferrormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor redispersed ThAr flux array for order %d of file\n\t%s",l+1,spec->file);
-	  return 0;
-	}
-	if ((spec->or[l].rdter=darray(spec->or[l].nrdp))==NULL) {
-	  nferrormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor redispersed ThAr flux array for order %d of file\n\t%s",l+1,spec->file);
-	  return 0;
-	}
+	sprintf(array_name,"redispersed ThAr flux");
+	if ((spec->or[l].rdth=darray(array_size))==NULL) { NFERR_ARRAY; }
+	sprintf(array_name,"redispersed ThAr error");
+	if ((spec->or[l].rdter=darray(array_size))==NULL) { NFERR_ARRAY; }
       }
-      if ((spec->or[l].rdst=iarray(spec->or[l].nrdp))==NULL) {
-	nferrormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor redispersed status array for order %d of file\n\t%s",l+1,spec->file);
-	return 0;
-      }
-      if ((spec->or[l].ordst=iarray(spec->or[l].nrdp))==NULL) {
-	nferrormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor old redispersed status array for order %d of file\n\t%s",l+1,spec->file);
-	return 0;
-      }
+      sprintf(array_name,"redispersed status");
+      if ((spec->or[l].rdst=iarray(array_size))==NULL) { NFERR_ARRAY; }
+      sprintf(array_name,"old redispersed status");
+      if ((spec->or[l].ordst=iarray(array_size))==NULL) { NFERR_ARRAY; }
       if (par->thar==1) {
-	if ((spec->or[l].rdtst=iarray(spec->or[l].nrdp))==NULL) {
-	  nferrormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor redispersed ThAr status array for order %d of file\n\t%s",l+1,spec->file);
-	  return 0;
-	}
+	sprintf(array_name,"redispersed ThAr status");
+	if ((spec->or[l].rdtst=iarray(array_size))==NULL) { NFERR_ARRAY; }
       }
 
       /* Find maximum size of data arrays needed and allocate memory */
@@ -175,49 +155,21 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
 		((cspec->wl[spec->or[l].ceidx]-cspec->wl[spec->or[l].ceidx-1])/
 		 (spec->or[l].vhrwl[spec->or[l].np-1]-
 		  spec->or[l].vhrwl[spec->or[l].np-2]))))+10;
-      maxndat=(MAX(maxndat,10));
-      if ((dat=darray(maxndat))==NULL)
-	errormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor dat array for redispersion of size %d",maxndat);
-      if ((err=darray(maxndat))==NULL)
-	errormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor err array for redispersion of size %d",maxndat);
-      if ((res=darray(maxndat))==NULL)
-	errormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor res array for redispersion of size %d",maxndat);
-      if ((frac=darray(maxndat))==NULL)
-	errormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor frac array for redispersion of size %d",maxndat);
-      if ((cdat=darray(maxndat))==NULL)
-	errormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor cdat array for redispersion of size %d",maxndat);
-      if ((cerr=darray(maxndat))==NULL)
-	errormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor cerr array for redispersion of size %d",maxndat);
-      if ((cres=darray(maxndat))==NULL)
-	errormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor cres array for redispersion of size %d",maxndat);
-      if ((cfrac=darray(maxndat))==NULL)
-	errormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor cfrac array for redispersion of size %d",maxndat);
-      if ((tdat=darray(maxndat))==NULL)
-	errormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor tdat array for redispersion of size %d",maxndat);
-      if ((terr=darray(maxndat))==NULL)
-	errormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor terr array for redispersion of size %d",maxndat);
-      if ((tfrac=darray(maxndat))==NULL)
-	errormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor tfrac array for redispersion of size %d",maxndat);
-      if ((ctdat=darray(maxndat))==NULL)
-	errormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor ctdat array for redispersion of size %d",maxndat);
-      if ((cterr=darray(maxndat))==NULL)
-	errormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor cterr array for redispersion of size %d",maxndat);
-      if ((ctfrac=darray(maxndat))==NULL)
-	errormsg("UVES_redispers(): Cannot allocate memory\n\
-\tfor ctfrac array for redispersion of size %d",maxndat);
+      maxndat=array_size=(MAX(maxndat,10));
+      sprintf(array_name,"dat"); if ((dat=darray(maxndat))==NULL) { ERR_ARRAY; }
+      sprintf(array_name,"err"); if ((err=darray(maxndat))==NULL) { ERR_ARRAY; }
+      sprintf(array_name,"res"); if ((res=darray(maxndat))==NULL) { ERR_ARRAY; }
+      sprintf(array_name,"frac"); if ((frac=darray(maxndat))==NULL) { ERR_ARRAY; }
+      sprintf(array_name,"cdat"); if ((cdat=darray(maxndat))==NULL) { ERR_ARRAY; }
+      sprintf(array_name,"cerr"); if ((cerr=darray(maxndat))==NULL) { ERR_ARRAY; }
+      sprintf(array_name,"cres"); if ((cres=darray(maxndat))==NULL) { ERR_ARRAY; }
+      sprintf(array_name,"cfrac"); if ((cfrac=darray(maxndat))==NULL) { ERR_ARRAY; }
+      sprintf(array_name,"tdat"); if ((tdat=darray(maxndat))==NULL) { ERR_ARRAY; }
+      sprintf(array_name,"terr"); if ((terr=darray(maxndat))==NULL) { ERR_ARRAY; }
+      sprintf(array_name,"tfrac"); if ((tfrac=darray(maxndat))==NULL) { ERR_ARRAY; }
+      sprintf(array_name,"ctdat"); if ((ctdat=darray(maxndat))==NULL) { ERR_ARRAY; }
+      sprintf(array_name,"cterr"); if ((cterr=darray(maxndat))==NULL) { ERR_ARRAY; }
+      sprintf(array_name,"ctfrac"); if ((ctfrac=darray(maxndat))==NULL) { ERR_ARRAY; }
 
       /** Do the redispersion **/
       /* Loop over redispersed pixels */
@@ -230,7 +182,7 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
 	else {
 	  if ((eidx=idxdval(&(spec->or[l].vhrwl[sidx]),spec->or[l].np-sidx,rdewl))==-1)
 	    errormsg("UVES_redispers(): Cannot find wavelength %9.4lf\n\
-\t(right edge of redispersed pixel %d) in raw vac-helio array\n	       \
+\t(right edge of redispersed pixel %d) in raw vac-helio array\n\
 \tranging over %9.4lf to %9.4lf",rdewl,j+1,spec->or[l].vhrwl[sidx],
 		   spec->or[l].vhrwl[spec->or[l].np-1]);
 	  eidx+=sidx;
@@ -242,14 +194,14 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
 	     and ending wavelengths */
 	  lwl=(k) ? spec->or[l].vhrwl[k-1] : spec->or[l].fvhlwl;
 	  if (lwl>=rdswl) sfr=0.0;
-	  else sfr=0.5-(double)k+UVES_revwpol(spec,l,k,rdswl,ranseed,par);
+	  else sfr=0.5-(double)k+UVES_revwpol(spec,l,k,rdswl,ranseed,0,par);
 	  if (sfr<0.0 || sfr>1.0)
 	    errormsg("UVES_redisperse(): Fraction of raw pixel %d\n\
 \tfalling bluewards of combined pixel %d in order %d of spectrum %d,\n\t%s,\n\
 \tis %lg. Must be >=0.0 and <=1.0",k+1,j+1,l+1,spec->id+1,spec->file,sfr); 
 	  rwl=spec->or[l].vhrwl[k];
 	  if (rwl<rdewl) efr=0.0;
-	  else efr=(double)k+0.5-UVES_revwpol(spec,l,k,rdewl,ranseed,par);
+	  else efr=(double)k+0.5-UVES_revwpol(spec,l,k,rdewl,ranseed,0,par);
 	  if (efr<0.0 || efr>1.0)
 	    errormsg("UVES_redisperse(): Fraction of raw pixel %d\n\
 \tfalling redwards of combined pixel %d in order %d of spectrum %d,\n\t%s,\n\
@@ -343,7 +295,7 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
 	    if (spec->or[l].rdtst[i]!=RCLIP && spec->or[l].rdtst[i]!=OCLIP &&
 		spec->or[l].rdtst[i]!=ACLIP)
 	      errormsg("UVES_redispers(): Strange value of average\n\
-\tstatus (=%d) for redispersed ThAr pixel %d of order %d.\n		\
+\tstatus (=%d) for redispersed ThAr pixel %d of order %d.\n\
 \tShould be either %d, %d or %d",spec->or[l].rdtst[i],i+1,l+1,RCLIP,OCLIP,ACLIP);
 	  } else {
 	    for (k=0; k<ntdat; k++) {
@@ -363,19 +315,187 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
 
       /* Free space taken by original data arrays (only redispersed values
 	 used from here on) */
-      if (!UVES_memspec(spec,par,-l-1))
+      if (!UVES_memspec(spec,par,-l-1,0))
 	errormsg("UVES_redispers(): Error returned from UVES_memspec() when\n\
 \tattempting to free memory from order %d of file\n\t%s",l+1,spec->file);
-      /*
-      free(spec->or[l].vhwl); free(spec->or[l].vhrwl); free(spec->or[l].fl);
-      free(spec->or[l].er); free(spec->or[l].res); free(spec->or[l].st);
-      if (par->thar==1) {
-	free(spec->or[l].th); free(spec->or[l].ter); free(spec->or[l].tst);
-      }
-      */
     }
   }
-      
+
+  /** Sky spectrum **/
+  if (spec->skysub) {
+    /* Loop over all orders */
+    for (l=0; l<spec->ss.nor; l++) {
+      /* Find first valid pixel in raw sky order whose right-hand edge
+	 wavelength lies redwards of the left-hand edge of first
+	 combined pixel */
+      i=0;
+      while (i<spec->ss.or[l].np && spec->ss.or[l].st[i]<1 &&
+	     spec->ss.or[l].vhrwl[i]<cspec->flwl) i++;
+      fval=i;
+      /* Find last valid pixel in raw sky order whose left-hand edge
+	 wavelength lies bluewards of the right-hand edge of last
+	 combined pixel */
+      i=spec->ss.or[l].np-1;
+      while (i>=0 && spec->ss.or[l].st[i]<1 &&
+	     spec->ss.or[l].vhrwl[i-1]>cspec->rwl[cspec->np-1]) i--;
+      lval=i;
+      /* Do not continue with redispersion if all of the sky order
+	 lies completely outside the combined spectrum wavelength
+	 range */
+      if (fval==spec->ss.or[l].np || lval==-1) spec->ss.or[l].nuse=0;
+      else spec->ss.or[l].nuse=lval-fval+1;
+      if (spec->ss.or[l].nuse) {
+	/* Find first pixel in combined array to which first valid pixel
+	   in raw sky array will contribute */
+	swl=(fval) ? spec->ss.or[l].vhrwl[fval-1] : spec->ss.or[l].fvhlwl;
+	if ((spec->ss.or[l].csidx=idxdval(cspec->rwl,cspec->np,swl))==-1)
+	  errormsg("UVES_redispers(): Cannot find wavelength\n\
+\t%9.4lf (left edge of vachelio sky pixel %d in order %d of file\n\t%s)\n\
+\tin combined spectrum wavelength array covering range\n\
+\t%9.4lf to %9.4lf",swl,fval+1,l+1,spec->ss.file,cspec->wl[0],
+		   cspec->wl[cspec->np-1]);
+	/* Find last pixel in combined array to which last pixel in raw
+	   sky array will contribute */
+	ewl=spec->ss.or[l].vhrwl[lval];
+	if ((spec->ss.or[l].ceidx=idxdval(cspec->rwl,cspec->np,ewl))==-1)
+	  errormsg("UVES_redispers(): Cannot find wavelength\n\
+\t%9.4lf (right edge of vachelio sky pixel %d in order %d of file\n\t%s)\n\
+\tin combined spectrum wavelength array covering range\n\
+\t%9.4lf to %9.4lf",ewl,lval+1,l+1,spec->ss.file,cspec->wl[0],
+		   cspec->wl[cspec->np-1]);
+	if (ewl*(1.0-DRNDTOL)<=cspec->rwl[spec->ss.or[l].ceidx-1])
+	  spec->ss.or[l].ceidx--;
+	/* Find number of cspec pixels covered by sky order */
+	if ((spec->ss.or[l].nrdp=spec->ss.or[l].ceidx-spec->ss.or[l].csidx+1)<=0) {
+	  nferrormsg("UVES_redispers(): Found strange number of\n\
+\tcombined spectrum pixels (=%d) traversed by valid sky pixels in\n\
+\torder %d of file\n\t%s",spec->ss.or[l].nrdp,l+1,spec->ss.file); return 0;
+	}
+	/* Allocate memory to redispersed sky arrays */
+	array_size=spec->ss.or[l].nrdp; sprintf(filename,"%s",spec->ss.file);
+	sprintf(array_name,"redispersed sky flux");
+	if ((spec->ss.or[l].rdfl=darray(array_size))==NULL) { NFERR_ARRAY; }
+	sprintf(array_name,"redispersed sky error");
+	if ((spec->ss.or[l].rder=darray(array_size))==NULL) { NFERR_ARRAY; }
+	sprintf(array_name,"redispersed sky expected fluctuation");
+	if ((spec->ss.or[l].rdef=darray(array_size))==NULL) { NFERR_ARRAY; }
+	sprintf(array_name,"redispersed sky median");
+	if ((spec->ss.or[l].rdme=darray(array_size))==NULL) { NFERR_ARRAY; }
+	sprintf(array_name,"redispersed sky status");
+	if ((spec->ss.or[l].rdst=iarray(array_size))==NULL) { NFERR_ARRAY; }
+	/* Find maximum size of data arrays needed and allocate memory */
+	maxndat=10;
+	if (spec->ss.or[l].vhrwl[0]-spec->ss.or[l].fvhlwl>0.0)
+	  maxndat=(int)((cspec->wl[spec->ss.or[l].csidx+1]-cspec->wl[spec->ss.or[l].csidx])/
+			(spec->ss.or[l].vhrwl[0]-spec->ss.or[l].fvhlwl));
+	if (spec->ss.or[l].vhrwl[spec->ss.or[l].np-1]-
+	    spec->ss.or[l].vhrwl[spec->ss.or[l].np-2]>0.0)
+	  maxndat=(int)(MAX(maxndat,
+			    ((cspec->wl[spec->ss.or[l].ceidx]-
+			      cspec->wl[spec->ss.or[l].ceidx-1])/
+			     (spec->ss.or[l].vhrwl[spec->ss.or[l].np-1]-
+			      spec->ss.or[l].vhrwl[spec->ss.or[l].np-2]))))+10;
+	maxndat=array_size=(MAX(maxndat,10));
+	sprintf(array_name,"sky dat"); if ((dat=darray(maxndat))==NULL) { ERR_ARRAY; }
+	sprintf(array_name,"sky err"); if ((err=darray(maxndat))==NULL) { ERR_ARRAY; }
+	sprintf(array_name,"sky frac"); if ((frac=darray(maxndat))==NULL) { ERR_ARRAY; }
+	sprintf(array_name,"sky cdat"); if ((cdat=darray(maxndat))==NULL) { ERR_ARRAY; }
+	sprintf(array_name,"sky cerr"); if ((cerr=darray(maxndat))==NULL) { ERR_ARRAY; }
+	sprintf(array_name,"sky cfrac"); if ((cfrac=darray(maxndat))==NULL) { ERR_ARRAY; }
+	/** Do the redispersion **/
+	/* Loop over redispersed pixels */
+	for (i=0,j=spec->ss.or[l].csidx; i<spec->ss.or[l].nrdp; i++,j++) {
+	  /* Find the first and last raw pixels which contribute to this
+	     redispersed pixel */
+	  rdswl=(j) ? cspec->rwl[j-1] : cspec->flwl; rdewl=cspec->rwl[j];
+	  sidx=(i) ? eidx : fval;
+	  if (i==spec->ss.or[l].nrdp-1) eidx=lval;
+	  else {
+	    if ((eidx=idxdval(&(spec->ss.or[l].vhrwl[sidx]),spec->ss.or[l].np-sidx,rdewl))==-1)
+	      errormsg("UVES_redispers(): Cannot find wavelength %9.4lf\n\
+\t(right edge of redispersed sky pixel %d) in raw vac-helio array\n\
+\tranging over %9.4lf to %9.4lf",rdewl,j+1,spec->ss.or[l].vhrwl[sidx],
+		       spec->ss.or[l].vhrwl[spec->ss.or[l].np-1]);
+	    eidx+=sidx;
+	  }
+	  /* Loop through relevant raw pixels and find weighted mean flux */
+	  ndat=ncdat=0; cst=RCLIP; for (k=sidx; k<=eidx; k++) {
+	    /* Find fraction of pixel (in pixel space) within starting
+	       and ending wavelengths */
+	    lwl=(k) ? spec->ss.or[l].vhrwl[k-1] : spec->ss.or[l].fvhlwl;
+	    if (lwl>=rdswl) sfr=0.0;
+	    else sfr=0.5-(double)k+UVES_revwpol(spec,l,k,rdswl,ranseed,1,par);
+	    if (sfr<0.0 || sfr>1.0)
+	      errormsg("UVES_redisperse(): Fraction of raw sky pixel %d\n\
+\tfalling bluewards of combined pixel %d in order %d of spectrum %d,\n\t%s,\n\
+\tis %lg. Must be >=0.0 and <=1.0",k+1,j+1,l+1,spec->ss.or[l].id+1,spec->ss.file,sfr);
+	    rwl=spec->ss.or[l].vhrwl[k];
+	    if (rwl<rdewl) efr=0.0;
+	    else efr=(double)k+0.5-UVES_revwpol(spec,l,k,rdewl,ranseed,1,par);
+	    if (efr<0.0 || efr>1.0)
+	      errormsg("UVES_redisperse(): Fraction of raw sky pixel %d\n\
+\tfalling redwards of combined pixel %d in order %d of spectrum %d,\n\t%s,\n\
+\tis %lg. Must be >=0.0 and <=1.0",k+1,j+1,l+1,spec->ss.or[l].id+1,spec->ss.file,efr); 
+	    if ((fr=1.0-sfr-efr)<0.0 || fr>1.0)
+	      errormsg("UVES_redisperse(): Fraction of raw sky pixel %d\n\
+\tin order %d of spectrum %d,\n\t%s,\n\tcovering combined pixel %d is %lg.\n \
+\tMust be >=0.0 and <=1.0.",k+1,l+1,spec->ss.or[l].id+1,spec->ss.file,j+1,fr);
+	    fr=(MAX(fr,DRNDTOL));
+	    if (spec->ss.or[l].st[k]==1) {
+	      dat[ndat]=spec->ss.or[l].fl[k]; err[ndat]=spec->ss.or[l].er[k];
+	      frac[ndat++]=fr;
+	    } else {
+	      if (spec->ss.or[l].st[k]==OCLIP || spec->ss.or[l].st[k]==ACLIP) {
+		if (cst==RCLIP) cst=spec->ss.or[l].st[k];
+		cdat[ncdat]=spec->ss.or[l].fl[k]; cerr[ncdat]=spec->ss.or[l].er[k];
+		cfrac[ncdat++]=fr;
+	      }
+	    }
+	  }
+	  /* Compute statistics for object flux and error */
+	  sfrac=sfracf=sfracesq=sfracsqesq=sfracr=0.0;
+	  if (!ndat) {
+	    if (!ncdat) {
+	      spec->ss.or[l].rdfl[i]=0.0;
+	      spec->ss.or[l].rder[i]=spec->ss.or[l].rdef[i]=-INFIN;
+	    } else {
+	      for (k=0; k<ncdat; k++) {
+		sfrac+=cfrac[k]; sfracf+=cfrac[k]*cdat[k];
+		sfracesq+=(sfracesqi=cfrac[k]*cerr[k]*cerr[k]);
+		sfracsqesq+=cfrac[k]*sfracesqi;
+	      }
+	      spec->ss.or[l].rdfl[i]=sfracf/sfrac;
+	      spec->ss.or[l].rder[i]=sqrt(sfracesq/sfrac);
+	      spec->ss.or[l].rdef[i]=sqrt(sfracsqesq)/sfrac;
+	    }
+	    spec->ss.or[l].rdst[i]=cst;
+	    if (spec->ss.or[l].rdst[i]!=RCLIP && spec->ss.or[l].rdst[i]!=OCLIP &&
+		spec->ss.or[l].rdst[i]!=ACLIP)
+	      errormsg("UVES_redispers(): Strange value of average\n\
+\tstatus (=%d) for redispersed sky pixel %d of order %d.\n\
+\tShould be either %d, %d or %d",spec->ss.or[l].rdst[i],i+1,l+1,RCLIP,OCLIP,ACLIP);
+	  } else {
+	    for (k=0; k<ndat; k++) {
+	      sfrac+=frac[k]; sfracf+=frac[k]*dat[k];
+	      sfracesq+=(sfracesqi=frac[k]*err[k]*err[k]);
+	      sfracsqesq+=frac[k]*sfracesqi;
+	    }
+	    spec->ss.or[l].rdfl[i]=sfracf/sfrac;
+	    spec->ss.or[l].rder[i]=sqrt(sfracesq/sfrac);
+	    spec->ss.or[l].rdef[i]=sqrt(sfracsqesq)/sfrac; spec->ss.or[l].rdst[i]=1;
+	  }
+	}
+	/* Clean up temporary arrays */
+	free(dat); free(err); free(frac); free(cdat); free(cerr); free(cfrac);
+      }
+      /* Free space taken by original data arrays (only redispersed values
+	 used from here on) */
+      if (!UVES_memspec(spec,par,-l-1,1))
+	errormsg("UVES_redispers(): Error returned from UVES_memspec() when\n\
+\tattempting to free memory from sky order %d of file\n\t%s",l+1,spec->ss.file);
+    }
+  }
+
   return 1;
 
 }

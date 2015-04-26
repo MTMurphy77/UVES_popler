@@ -68,10 +68,9 @@ int UVES_rUPLfile(char *infile, spectrum **spec, int *nspec, action **act,
       fclose(data_file); ERR_FMT;
     } else if (par->filetype==-2) {
       par->filetype=idum;
-      if (par->filetype<FTMIX || (par->filetype>FTIESI && par->filetype<FTCOMB) ||
-	  par->filetype>FTCOMB)
+      if (par->filetype<FTMIX || par->filetype>FTCOMB)
 	errormsg("UVES_rUPLfile(): 'filetype' must be >= %d and\n\
-<= %d or = %d in UPL file %s",FTMIX,FTIESI,FTCOMB,infile);
+<= %d in UPL file %s",FTMIX,FTCOMB,infile);
     }
   } else par->filetype=FILETYPE;
   if (par->version>=0.31) {

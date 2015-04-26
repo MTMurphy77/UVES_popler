@@ -254,8 +254,8 @@ int UVES_r2Dspec(spectrum *spec, params *par) {
     errormsg("UVES_r2Dspec(): Cannot read value of header card\n\
 \t%s from FITS file\n\t%s.","NAXIS2",spec->file);
   if (!(spec->or=(echorder *)malloc((size_t)(spec->nor*sizeof(echorder)))))
-    errormsg("Could not allocate memory for echelle order array of size %d",
-	     spec->nor);
+    errormsg("UVES_r2Dspec(): Could not allocate memory for echelle\n\
+\torder array of size %d",spec->nor);
 
   /* Find number of pixels to read in for each order */
   if (fits_read_key(infits,TINT,"NAXIS1",&(spec->or[0].np),comment,&status))
@@ -264,7 +264,7 @@ int UVES_r2Dspec(spectrum *spec, params *par) {
   for (i=1; i<spec->nor; i++) spec->or[i].np=spec->or[0].np;
 
   /* Allocate memory for data arrays and fill wavelength, flux arrays */
-  if (!UVES_memspec(spec,par,spec->nor))
+  if (!UVES_memspec(spec,par,spec->nor,0))
     errormsg("UVES_r2Dspec(): Error returned from UVES_memspec() when\n\
 \tattempting to allocate memory for data arrays for file\n\t%s",spec->file);
 
@@ -450,7 +450,7 @@ int UVES_r2Dspec(spectrum *spec, params *par) {
     }
     if (spec->or[i].nuse<MINUSE) {
       /* Free the allocated memory for the raw arrays */
-      if (!UVES_memspec(spec,par,-i-1))
+      if (!UVES_memspec(spec,par,-i-1,0))
 	errormsg("UVES_r2Dspec(): Error returned from UVES_memspec() when\n\
 \tattempting to free memory from order %d of file\n\t%s",i+1,spec->file);
       /*

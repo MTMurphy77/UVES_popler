@@ -18,7 +18,6 @@ UVES_popler: UVES POst PIpeline Echelle Reduction
 char      *progname;
 plotenv   plenv;
 
-
 /****************************************************************************
 * Print the usage message
 ****************************************************************************/
@@ -35,7 +34,7 @@ General spectrum specifications:\n\
  -disp       =       TBD  : Dispersion in km/s or Angstroms (for lin. disp.)\n\
  -filetype   =       %1d    : File origin: UVES=0, IRAF=1, MAKEE=2, IRAFLSS=3,\n\
                                HIREDUX=4, ESOMERGED=5, MAGE=6, IRAFESI=7,\n\
-                               COMB=9, mixed=-1\n\
+                               HARPS=8, COMB=9, mixed=-1\n\
  -helio      =       %1d    : Input files in observed(0) or heliocentric(1) frame\n\
  -vacwl      =       %1d    : Input files in air (0) or vacuum (1) wavelengths\n\
  -zem        = %10.5lf : Emission redshift of QSO (if required for cont. fit)\n\
@@ -374,6 +373,11 @@ int main(int argc, char *argv[]) {
 	errormsg("Error returned from UVES_r2Dspec_iresi()\n\
 \twhen attempting to read in spectrum %d,\n\t%s",i+1,spec[i].file);
       break;
+    case FTHARP:
+      if (!UVES_r2Dspec_harps(&(spec[i]),&par))
+	errormsg("Error returned from UVES_r2Dspec_harps()\n\
+\twhen attempting to read in spectrum %d,\n\t%s",i+1,spec[i].file);
+      break;
     }
   }
   /* Use object name in first spectrum as object name for combined spectrum */
@@ -514,6 +518,16 @@ int main(int argc, char *argv[]) {
     }
   }
   */
+
+  /* For spectra that have accompanying sky spectra (currently only
+     HARPS spectra), perform the sky subtraction */
+  for (i=0; i<nspec; i++) {
+    if (spec[i].skysub) {
+      if (!UVES_skysub(&(spec[i]),&cspec,&par))
+	errormsg("Unknown error returned from UVES_skysub()\n\
+\twhen operating on file\n\t%s",spec[i].file);
+    }
+  }
 
   /* Do some simple statistics on each order, including calculating a
      median error array which will be used later for combining the

@@ -17,8 +17,8 @@
 #define ISWAP(a,b)    itmp=(a);(a)=(b);(b)=itmp
 
 /* Version number, date created and UVES_popler website */
-#define VERSION       0.68    /* Version number */
-#define DATECREATE    "10 April 2015"
+#define VERSION       0.69    /* Version number */
+#define DATECREATE    "26 April 2015"
 #define WWW           "www.astronomy.swin.edu.au/~mmurphy/UVES_popler.html"
 
 /* General (non-option) Parameters */
@@ -36,7 +36,11 @@
                               /*    FITS file                                */ 
 #define UVESBORR    500.0     /* Cross-over wave. (nm) for blue/red settings */
 #define UVESPIXSCALB  0.215   /* Central order pixel scale of blue UVES arm  */
-#define UVESPIXSCALR  0.155   /* Central order pixel scale of red UVES arm  */
+#define UVESPIXSCALR  0.155   /* Central order pixel scale of red UVES arm   */
+#define HARPSNSPATPIX 2.5     /* Eff. # spatial pix per HARPS-S extracted    */
+                              /*    spectral pix                             */
+#define HARPNNSPATPIX 2.5     /* Eff. # spatial pix per HARPS-N extracted    */
+                              /*    spectral pix                             */
 
 /* Command line options */
  /* General spectrum specifications */
@@ -155,7 +159,8 @@
 #define FTHIRX        4      /* HIREDUX reduction products                   */
 #define FTESOM        5      /* ESOMERGE reduction products                  */
 #define FTMAGE        6      /* MAGE pipeline products                       */
-#define FTIESI        7      /* MAGE pipeline products                       */
+#define FTIESI        7      /* IRAF ESI pipeline products                   */
+#define FTHARP        8      /* HARPS (S & N) pipeline products              */
 #define FTCOMB        9      /* Combined spectrum                            */
 
 /* Fit labelling */
@@ -310,6 +315,14 @@ typedef struct EchOrder {
   int      *rdtst;                /* Status of each redispersed ThAr pixel   */
 } echorder;
 
+typedef struct SkySpec {
+  int      nor;                   /* Number of orders                        */
+  char     path[LNGSTRLEN];       /* Full path of sky flux file              */
+  char     file[LNGSTRLEN];       /* Name of flux file                       */
+  char     abfile[LNGSTRLEN];     /* Name of flux file without full path     */
+  echorder *or;                   /* Pointer to echelle order array          */
+} skyspec;
+
 typedef struct ThArSpec {
   double   fwl;                   /* Vac. wavelength of first pixel's center */
   double   lwl;                   /* Vac. wavelength of last pixel's center  */
@@ -373,6 +386,8 @@ typedef struct Spectrum {
   int      day;                   /* Day of observation start (from mjd)     */
   int      nor;                   /* Number of orders                        */
   int      nhead_ori;             /* Num. keys in main header of flux file   */
+  int      skysub;                /* Flag to indicate need for separate sky- */
+                                  /*   subtraction (=1).                     */
   long     distort_seed;          /* Random number seed for wavelength       */
                                   /*   distortions                           */
   char     path[LNGSTRLEN];       /* Full path of flux and error file        */
@@ -388,6 +403,7 @@ typedef struct Spectrum {
   char     tharfile[LNGSTRLEN];   /* Name of ThAr archived file              */
   char     obj[NAMELEN];          /* Object name                             */
   char     **head_ori;            /* Original flux file main header          */
+  skyspec  ss;                    /* Sky spectrum                            */
   tharspec th;                    /* Order-merged 1D ThAr spectrum           */
   tharset  ts;                    /* Set of ThAr line parameters             */
   echorder *or;                   /* Pointer to echelle order array          */
@@ -559,7 +575,7 @@ int UVES_hex2dec(char *hex, double *hrs);
 int UVES_hirx_blzfit(echorder *ord, double *blz, double initrej, double rejsig,
 		     int order, int niter, int opt1, int opt2, double *fit);
 int UVES_init_cspec(cspectrum *cspec, params *par, int opt);
-int UVES_memspec(spectrum *spec, params *par, int opt);
+int UVES_memspec(spectrum *spec, params *par, int ord, int opt);
 int UVES_merge_thar(spectrum *spec, cspectrum *cspec, params *par);
 int UVES_model_resol(spectrum *spec);
 int UVES_order_cont(spectrum *spec, int nspec, params *par);
@@ -580,6 +596,7 @@ int UVES_plot_replay(rplot *rp, action *act, int nact, plotbut *but, int nbut,
 int UVES_r1Dspec(cspectrum *cspec, params *par);
 int UVES_r2Dspec(spectrum *spec, params *par);
 int UVES_r2Dspec_ESOmer(spectrum *spec, params *par);
+int UVES_r2Dspec_harps(spectrum *spec, params *par);
 int UVES_r2Dspec_hirx(spectrum *spec, params *par);
 int UVES_r2Dspec_iraf(spectrum *spec, params *par);
 int UVES_r2Dspec_iresi(spectrum *spec, params *par);
@@ -594,7 +611,7 @@ int UVES_replay_control(spectrum *spec, int nspec, cspectrum *cspec, cplot *cp,
 int UVES_rescale_region(spectrum *spec, int nspec, cspectrum *cspec, action *act,
 			int nact, double scalclip, double scalerr, params *par);
 double UVES_revwpol(spectrum *spec, int ord, int idx, double wl, long ranseed,
-		    params *par);
+		    int opt, params *par);
 int UVES_rinputfile(char *infile, spectrum **spec, int *nspec, action **act,
 		    int *nact, cspectrum *cspec, params *par);
 int UVES_rFITSlist(char *infile, spectrum **spec, int *nspec, params *par);
@@ -605,6 +622,7 @@ int UVES_select_subspec(spectrum *spec, int nspec, float wwidth, float wasp,
 			params *par);
 int UVES_set_wavelen_scale(spectrum *spec, int nspec, cspectrum *cspec,
 			   params *par);
+int UVES_skysub(spectrum *spec, cspectrum *cspec, params *par);
 int UVES_synthThAr(spectrum *spec, params *par);
 int UVES_thar_sigarray(spectrum *spec, params *par);
 int UVES_undo_lastact(spectrum *spec, int nspec, cspectrum *cspec, action *act,
@@ -616,5 +634,6 @@ int UVES_wFITSfile(spectrum *spec, int nspec, cspectrum *cspec, params *par);
 int UVES_wrawFITS(spectrum *spec, params *par);
 int UVES_wUPLfile(char *filename, spectrum *spec, int nspec, action *act,
 		  int nact, cspectrum *cspec, params *par);
-double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, params *par);
+double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, int opt,
+		 params *par);
 int UVES_tmpfit(spectrum *spec, params *par);

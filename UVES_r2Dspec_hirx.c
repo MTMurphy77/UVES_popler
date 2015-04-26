@@ -459,7 +459,7 @@ int UVES_r2Dspec_hirx(spectrum *spec, params *par) {
       }
     }
     /* Clean up */
-    free(blzfit);
+    free(blzfit); free(*blz); free(blz);
   }
 
   /* Read in the polynomial wavelength solutions from the extracted ThAr file.

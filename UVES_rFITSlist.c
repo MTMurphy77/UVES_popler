@@ -67,7 +67,7 @@ int UVES_rFITSlist(char *infile, spectrum **spec, int *nspec, params *par) {
 	fclose(data_file);
 	errormsg("UVES_rFITSlist(): Incorrect format in line %d\n\t of file\n\
 \t%s.\n\tWhen using mixed file-types, you must enter a digit (%d-%d) after each\n\
-\tfile name of the input file",i+1,infile,FTUVES,FTIESI);
+\tfile name of the input file",i+1,infile,FTUVES,FTHARP);
       }
     } else if (sscanf(buffer,"%s",(*spec)[i].file)!=1) {
       fclose(data_file);
@@ -200,6 +200,18 @@ int UVES_rFITSlist(char *infile, spectrum **spec, int *nspec, params *par) {
 	sprintf((*spec)[i].aberfile,"%s",(*spec)[i].abfile);
 	sprintf((*spec)[i].wlfile,"%s",(*spec)[i].file);
 	sprintf((*spec)[i].abwlfile,"%s",(*spec)[i].abfile);
+      } else if ((*spec)[i].ftype==FTHARP) {
+	if ((cptr=strstr((*spec)[i].abfile,"HARP"))==NULL ||
+	    strncmp((*spec)[i].abfile,"HARP",4) ||
+	    (cptr=strstr((*spec)[i].abfile,"e2ds"))==NULL)
+	  errormsg("UVES_rFITSlist(): Cannot identify HARPS filename\n\
+\tcharacteristics for flux file\n\t%s\n\
+\tHARPS (S or N) file names must have 'HARP[S or N]' prefix\n\
+\tand contain 'e2ds'.",(*spec)[i].file);
+	sprintf((*spec)[i].erfile,"%s",(*spec)[i].file);
+	sprintf((*spec)[i].aberfile,"%s",(*spec)[i].abfile);
+	sprintf((*spec)[i].wlfile,"%s",(*spec)[i].file);
+	sprintf((*spec)[i].abwlfile,"%s",(*spec)[i].abfile);
       }
     } else {
       if ((*spec)[i].ftype<=FTUVES) {
@@ -262,6 +274,9 @@ int UVES_rFITSlist(char *infile, spectrum **spec, int *nspec, params *par) {
       } else if ((*spec)[i].ftype==FTIESI) {
 	errormsg("UVES_rFITSlist(): Do not know how to read in\n\
 \tThAr IRAF-ESI files for flux file\n\t%s",(*spec)[i].file);
+      } else if ((*spec)[i].ftype==FTHARP) {
+	errormsg("UVES_rFITSlist(): Do not know how to read in\n\
+\tThAr HARPS spectrum for flux file\n\t%s",(*spec)[i].file);
       }
     }
   }

@@ -1,3 +1,3 @@
 #!/bin/tcsh
 
-rsync -a --copy-links --delete ../*.c ../*.h ../*.tex ../*.pdf ../Makefile* ../README* .
+rsync -a --copy-links --delete --progress ../*.c ../*.h ../*.tex ../*.pdf ../Makefile* ../README* .

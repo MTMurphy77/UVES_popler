@@ -2,6 +2,9 @@
 * Calculate the vaccuum-heliocentric wavelength of a given pixel from the
 * wavelength calibration polynomial.
 *
+* Opt=0 is for the wavelength scale of the object flux spectrum.
+* Opt=1 is for the wavelength scale of the sky flux spectrum.
+*
 * Note: ranseed is the random number seed which determines the
 * "offset" and "slope" parameters of the velocity distortions, when
 * requested by the user. It should always come from the same spectrum
@@ -21,7 +24,8 @@
 #include "const.h"
 #include "error.h"
 
-double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, params *par) {
+double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, int opt,
+		 params *par) {
 
   double airwl=0.0,vacwl=0.0,didx=0.0,ndidx=0.0,dndidx=0.0;
   double dwl=0.0;
@@ -33,7 +37,7 @@ double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, params *par)
   double vd_offset=50.0,vd_slope=0.02,vd_echamp=50.0;
   double vd_x=0.0,vd=0.0;
   double *x=NULL,*y=NULL;
-  int    sidx=0;
+  int    revdisp=0,sidx=0;
   int    i=0,j=0;
   long   vd_idum=0;
 
@@ -48,7 +52,9 @@ double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, params *par)
   /* If the dispersion (as derived from the wavelength polynomial) of
      the echelle order of interest is reversed then we need to
      transform the input index appropriately */
-  if (spec->or[ord].revdisp) didx=(double)(spec->or[ord].np)-didx+1.0;
+  revdisp=(opt) ? -spec->ss.or[ord].revdisp*spec->ss.or[ord].np :
+    spec->or[ord].revdisp*spec->or[ord].np;
+  if (revdisp!=0) didx=(double)(abs(revdisp))-didx+1.0;
 
   /* Use the wavelength polynomial coefficients to calculate air-wavelength */
   switch (spec->ftype) {
@@ -137,6 +143,16 @@ double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, params *par)
     /* Dispersion: w[i]=wstart_ord+i*dispersion_ord */
     for (i=spec->or[ord].nwpol-1; i>=0; i--) airwl=spec->or[ord].wpol[i]+didx*airwl;
     break;
+  case FTHARP:
+    if (opt) {
+      /* Sky spectrum's wavelength's */
+      for (i=spec->ss.or[ord].nwpol-1; i>=0; i--)
+	airwl=spec->ss.or[ord].wpol[i]+didx*airwl;
+    } else {
+      /* Object spectrum's wavelength's */
+      for (i=spec->or[ord].nwpol-1; i>=0; i--) airwl=spec->or[ord].wpol[i]+didx*airwl;
+    }
+    break;
   }
 
   /* If user wants to apply a distortion, with randomized parameters,
@@ -154,7 +170,8 @@ double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, params *par)
     vd_offset*=2.0*(ran(&vd_idum)-0.5); vd_slope*=2.0*(ran(&vd_idum)-0.5);
     vd_idum=spec->distort_seed;
     vd_echamp*=2.0*(ran(&vd_idum)-0.5);
-    vd_x=didx/(double)spec->or[ord].np-0.5;
+    vd_x=(opt) ? didx/(double)spec->ss.or[ord].np-0.5 :
+      didx/(double)spec->or[ord].np-0.5;
     vd=vd_offset+vd_slope*(airwl-5000.0)+vd_echamp*(1.0-8.0*vd_x*vd_x);
     airwl+=airwl*vd/C_C;
   }

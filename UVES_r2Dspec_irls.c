@@ -239,7 +239,7 @@ int UVES_r2Dspec_irls(spectrum *spec, params *par) {
     if (naxes[0]!=npix)
       errormsg("UVES_r2Dspec_irls(): Mismatch in array sizes between\n\
 \tflux and error files\n\t%s &\n\t%s",spec->file,spec->erfile);
-    if (naxes[1]!=spec->nor)
+    if (naxes[1]!=0 && naxes[1]!=1)
       errormsg("UVES_r2Dspec_irls(): Mismatch in number of orders between\n\
 \tflux and error files\n\t%s &\n\t%s",spec->file,spec->erfile);
 

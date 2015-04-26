@@ -45,8 +45,8 @@ int UVES_set_wavelen_scale(spectrum *spec, int nspec, cspectrum *cspec,
       if (spec[i].or[j].nuse>=MINUSE) {
 	/* Test dispersion to see if it is reversed or not */
 	spec[i].or[j].revdisp=0;
-	spec[i].or[j].vhwl[0]=UVES_wpol(&(spec[i]),j,0.0,ranseed,par);
-	spec[i].or[j].vhrwl[0]=UVES_wpol(&(spec[i]),j,0.5,ranseed,par);
+	spec[i].or[j].vhwl[0]=UVES_wpol(&(spec[i]),j,0.0,ranseed,0,par);
+	spec[i].or[j].vhrwl[0]=UVES_wpol(&(spec[i]),j,0.5,ranseed,0,par);
 	if (spec[i].or[j].vhrwl[0]<spec[i].or[j].vhwl[0]) {
 	  /* Dispersion must be reversed */
 	  spec[i].or[j].revdisp=1;
@@ -69,14 +69,14 @@ int UVES_set_wavelen_scale(spectrum *spec, int nspec, cspectrum *cspec,
 	  /* Clean up */
 	  free(ibuf);
 	  /* Reinstate wavelength information for first pixel */
-	  spec[i].or[j].vhwl[0]=UVES_wpol(&(spec[i]),j,0.0,ranseed,par);
-	  spec[i].or[j].vhrwl[0]=UVES_wpol(&(spec[i]),j,0.5,ranseed,par);
+	  spec[i].or[j].vhwl[0]=UVES_wpol(&(spec[i]),j,0.0,ranseed,0,par);
+	  spec[i].or[j].vhrwl[0]=UVES_wpol(&(spec[i]),j,0.5,ranseed,0,par);
 	}
 	/* Set left-hand vac. helio. wavelength of first pixel */
-	spec[i].or[j].fvhlwl=UVES_wpol(&(spec[i]),j,-0.5,ranseed,par);
+	spec[i].or[j].fvhlwl=UVES_wpol(&(spec[i]),j,-0.5,ranseed,0,par);
 	/* For CPL UVES spectra, convert the resolution array from
 	   pixel space into velocity space */
-	if (spec->ftype==FTUVES && spec->fvers==1)
+	if (spec[i].ftype==FTUVES && spec[i].fvers==1)
 	  spec[i].or[j].res[0]*=C_C_K*(spec[i].or[j].vhrwl[0]-spec[i].or[j].fvhlwl)/
 	    spec[i].or[j].vhwl[0];
 	/* Set the wavelengths of the middles and right-hand edges of the pixels */
@@ -89,8 +89,8 @@ int UVES_set_wavelen_scale(spectrum *spec, int nspec, cspectrum *cspec,
 	     vac. helio. wav. arrays) to define the final wavelength
 	     scale. So the following line should not be necessary. */
 	  // if (spec->ftype!=FTMAGE && spec->ftype!=FTIESI)
-	  spec[i].or[j].vhwl[k]=UVES_wpol(&(spec[i]),j,(double)k,ranseed,par);
-	  spec[i].or[j].vhrwl[k]=UVES_wpol(&(spec[i]),j,0.5+(double)k,ranseed,par);
+	  spec[i].or[j].vhwl[k]=UVES_wpol(&(spec[i]),j,(double)k,ranseed,0,par);
+	  spec[i].or[j].vhrwl[k]=UVES_wpol(&(spec[i]),j,0.5+(double)k,ranseed,0,par);
 	  if (par->linear)
 	    cdisp=(MIN(cdisp,(spec[i].or[j].vhwl[k]-spec[i].or[j].vhwl[k-1])));
 	  else
@@ -115,6 +115,43 @@ int UVES_set_wavelen_scale(spectrum *spec, int nspec, cspectrum *cspec,
 	  (MIN(cwls,spec[i].or[j].fvhlwl));
 	k=spec[i].or[j].np-1; while (spec[i].or[j].st[k]<1) k--;
 	cwle=MAX(cwle,spec[i].or[j].vhrwl[k]);
+      }
+    }
+    /* For HARPS spectra with a sky spectrum, do same steps as for
+       flux spectrum above but do not let the sky spectrum contribute
+       to determination of the dispersion and starting/ending
+       wavelengths of the combined spectrum */
+    if (spec[i].ftype==FTHARP && spec[i].skysub==1) {
+      for (j=0; j<spec[i].ss.nor; j++) {
+	if (spec[i].ss.or[j].nuse>=MINUSE) {
+	  spec[i].ss.or[j].revdisp=0;
+	  spec[i].ss.or[j].vhwl[0]=UVES_wpol(&(spec[i]),j,0.0,ranseed,1,par);
+	  spec[i].ss.or[j].vhrwl[0]=UVES_wpol(&(spec[i]),j,0.5,ranseed,1,par);
+	  if (spec[i].ss.or[j].vhrwl[0]<spec[i].ss.or[j].vhwl[0]) {
+	    spec[i].ss.or[j].revdisp=1;
+	    if ((ibuf=iarray(spec[i].ss.or[j].np))==NULL)
+	      errormsg("UVES_set_wavelen_scale(): Cannot allocate memory for\n\
+\tibuf array of size %d",spec[i].ss.or[j].np);
+	    for (k=0,l=spec[i].ss.or[j].np-1; k<spec[i].ss.or[j].np; k++,l--) {
+	      spec[i].ss.or[j].vhwl[k]=spec[i].ss.or[j].fl[l];
+	      spec[i].ss.or[j].vhrwl[k]=spec[i].ss.or[j].er[l];
+	      ibuf[k]=spec[i].ss.or[j].st[l];
+	    }
+	    for (k=0; k<spec[i].ss.or[j].np; k++) {
+	      spec[i].ss.or[j].fl[k]=spec[i].ss.or[j].vhwl[k];
+	      spec[i].ss.or[j].er[k]=spec[i].ss.or[j].vhrwl[k];
+	      spec[i].ss.or[j].st[k]=ibuf[k];
+	    }
+	    free(ibuf);
+	    spec[i].ss.or[j].vhwl[0]=UVES_wpol(&(spec[i]),j,0.0,ranseed,1,par);
+	    spec[i].ss.or[j].vhrwl[0]=UVES_wpol(&(spec[i]),j,0.5,ranseed,1,par);
+	  }
+	  spec[i].ss.or[j].fvhlwl=UVES_wpol(&(spec[i]),j,-0.5,ranseed,1,par);
+	  for (k=1; k<spec[i].ss.or[j].np; k++) {
+	    spec[i].ss.or[j].vhwl[k]=UVES_wpol(&(spec[i]),j,(double)k,ranseed,1,par);
+	    spec[i].ss.or[j].vhrwl[k]=UVES_wpol(&(spec[i]),j,0.5+(double)k,ranseed,1,par);
+	  }
+	}
       }
     }
   }
