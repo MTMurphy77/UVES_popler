@@ -17,8 +17,8 @@
 #define ISWAP(a,b)    itmp=(a);(a)=(b);(b)=itmp
 
 /* Version number, date created and UVES_popler website */
-#define VERSION       0.69    /* Version number */
-#define DATECREATE    "26 April 2015"
+#define VERSION       0.70    /* Version number */
+#define DATECREATE    "27 April 2015"
 #define WWW           "www.astronomy.swin.edu.au/~mmurphy/UVES_popler.html"
 
 /* General (non-option) Parameters */
@@ -37,9 +37,9 @@
 #define UVESBORR    500.0     /* Cross-over wave. (nm) for blue/red settings */
 #define UVESPIXSCALB  0.215   /* Central order pixel scale of blue UVES arm  */
 #define UVESPIXSCALR  0.155   /* Central order pixel scale of red UVES arm   */
-#define HARPSNSPATPIX 2.5     /* Eff. # spatial pix per HARPS-S extracted    */
+#define HARPSNSPATPIX 4.0     /* Eff. # spatial pix per HARPS-S extracted    */
                               /*    spectral pix                             */
-#define HARPNNSPATPIX 2.5     /* Eff. # spatial pix per HARPS-N extracted    */
+#define HARPNNSPATPIX 4.0     /* Eff. # spatial pix per HARPS-N extracted    */
                               /*    spectral pix                             */
 
 /* Command line options */
