@@ -65,7 +65,7 @@ int UVES_wrawFITS(spectrum *spec, params *par) {
   if (!access(fitsname,R_OK))
     warnmsg("UVES_wrawFITS(): Overwriting existing file\n\t%s",fitsname);
   else fprintf(stderr,"UVES_wrawFITS(): Opening UVES_popler FITS file\n\
-\t%s",fitsname);
+\t%s\n",fitsname);
   if (fits_create_file(&outfits,clobname,&status))
     errormsg("UVES_wrawFITS(): Cannot create FITS file\n\t%s",fitsname);
 

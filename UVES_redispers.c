@@ -354,15 +354,18 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
 \tin combined spectrum wavelength array covering range\n\
 \t%9.4lf to %9.4lf",swl,fval+1,l+1,spec->ss.file,cspec->wl[0],
 		   cspec->wl[cspec->np-1]);
-	/* Find last pixel in combined array to which last pixel in raw
-	   sky array will contribute */
+	/* Find last pixel in combined array to which last valid pixel
+	   in raw sky array will contribute */
 	ewl=spec->ss.or[l].vhrwl[lval];
 	if ((spec->ss.or[l].ceidx=idxdval(cspec->rwl,cspec->np,ewl))==-1)
+	  spec->ss.or[l].ceidx=cspec->np-1;
+	  /*
 	  errormsg("UVES_redispers(): Cannot find wavelength\n\
 \t%9.4lf (right edge of vachelio sky pixel %d in order %d of file\n\t%s)\n\
 \tin combined spectrum wavelength array covering range\n\
 \t%9.4lf to %9.4lf",ewl,lval+1,l+1,spec->ss.file,cspec->wl[0],
 		   cspec->wl[cspec->np-1]);
+	  */
 	if (ewl*(1.0-DRNDTOL)<=cspec->rwl[spec->ss.or[l].ceidx-1])
 	  spec->ss.or[l].ceidx--;
 	/* Find number of cspec pixels covered by sky order */

@@ -47,6 +47,7 @@ double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, int opt,
   if (spec->ftype==FTUVES && spec->fvers==1) didx=idx+1.0-spec->or[ord].wpol[NWPOL-1];
   else if (spec->ftype==FTIRLS || spec->ftype==FTHIRX || spec->ftype==FTIESI) didx=idx;
   else if (spec->ftype==FTMAKE) didx=idx+spec->or[ord].idxoff;
+  else if (spec->ftype==FTHARP) didx=idx;
   else didx=idx+1.0;
 
   /* If the dispersion (as derived from the wavelength polynomial) of
