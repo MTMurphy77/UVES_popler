@@ -43,7 +43,7 @@ int UVES_wrawFITS(spectrum *spec, params *par) {
   char     extname[FLEN_COMMENT]="MainFluxFileHeader\0";
   char     *cptr;
   fitsfile *outfits=NULL;
-  char     **type,**form,**unit;
+  char     **type=NULL,**form=NULL,**unit=NULL;
 
   /* Determine output file name based on original file name */
   sprintf(clobname,"!%s",spec->abfile);

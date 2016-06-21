@@ -304,7 +304,9 @@ int UVES_r1Dspec(cspectrum *cspec, params *par) {
       } else {
 	/* This might be a tabular FITS file */
 	/* Move to next HDU */
-	if (fits_movrel_hdu(infits,1,&hdutype,&status));
+	if (fits_movrel_hdu(infits,1,&hdutype,&status))
+	  errormsg("UVES_r1Dspec(): Cannot move to second HDU\n\tin FITS file\n\t%s.",
+		   cspec->file);
 	/* Check HDU type */
 	if (hdutype!=BINARY_TBL)
 	  errormsg("UVES_r2Dspec(): No primary array found in file\n\t%s\n\

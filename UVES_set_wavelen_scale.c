@@ -24,7 +24,7 @@ int UVES_set_wavelen_scale(spectrum *spec, int nspec, cspectrum *cspec,
   /* Set v_distort to 1 to apply distortions, 0 to NOT apply distortions. */
   v_distort=0;
   // For Keck
-  v_saw=200.0;
+  v_saw=100.0;
   // For VLT
   // v_saw=100.0;
 

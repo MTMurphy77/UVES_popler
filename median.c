@@ -64,7 +64,7 @@ int median(double *dat, int *sts, int ndat, statset *stat, int opt) {
   }
 
   /* Copy and sort the array */
-  for (i=0,nval; i<ndat; i++) if (snull || sts[i]==1) dbuf[nval++]=dat[i];
+  for (i=0,nval=0; i<ndat; i++) if (snull || sts[i]==1) dbuf[nval++]=dat[i];
   if (nval) {
     /* Sort the array */
     qsort(dbuf,nval,sizeof(double),qsort_darray);

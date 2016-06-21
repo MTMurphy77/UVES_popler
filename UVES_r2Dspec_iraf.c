@@ -82,14 +82,19 @@ int UVES_r2Dspec_iraf(spectrum *spec, params *par) {
   spec->binx=spec->biny=-1;
 
   if (par->thar<=1) {
-    /* Get observation epoch */
+    /* Get observation epoch or Julian day */
     if (fits_read_key(infits,TDOUBLE,"OBSEPOCH",&(spec->epoch),comment,&status)) {
-      /* Get modified julian day */
       status=0;
-      if (fits_read_key(infits,TDOUBLE,"MJD",&(spec->jd),comment,&status))
-	errormsg("UVES_r2Dspec_iraf(): Cannot read value of header cards %s\n\
-\tor %s from FITS file %s.","OBSEPOCH","MJD",spec->file);
-      /* Convert to Julian day */
+      if (fits_read_key(infits,TDOUBLE,"MJDSTART",&(spec->jd),comment,&status)) {
+	status=0;
+	if (fits_read_key(infits,TDOUBLE,"MJD-STR",&(spec->jd),comment,&status)) {
+	  status=0;
+	  if (fits_read_key(infits,TDOUBLE,"MJD",&(spec->jd),comment,&status))
+	    errormsg("UVES_r2Dspec_iraf(): Cannot read value of header cards %s\n\
+\t, %s, %s or %s from FITS file %s.","OBSEPOCH","MJDSTART","MJD-STR","MJD",spec->file);
+	}
+      }
+      /* Convert modified Julian day to Julian day */
       spec->jd+=2400000.5;
     } else spec->jd=ast_epoch2jd(spec->epoch);
     /* Get date of observation and convert to year, month and day */
@@ -113,9 +118,12 @@ int UVES_r2Dspec_iraf(spectrum *spec, params *par) {
       /* Get universal time */ 
       if (fits_read_key(infits,TSTRING,"UTSTART",time,comment,&status)) {
 	status=0;
-	if (fits_read_key(infits,TSTRING,"UT-STR",time,comment,&status))
-	  errormsg("UVES_r2Dspec_iraf(): Cannot read value of header cards\n\
-\t%s or %s from FITS file\n\t%s.","UTSTART","UT-STR",spec->file);
+	if (fits_read_key(infits,TSTRING,"UT-STR",time,comment,&status)) {
+	  status=0;
+	  if (fits_read_key(infits,TSTRING,"UT",time,comment,&status))
+	    errormsg("UVES_r2Dspec_iraf(): Cannot read value of header cards\n\
+\t%s, %s or %s from FITS file\n\t%s.","UTSTART","UT-STR","UT",spec->file);
+	}
       }
       /* Convert to hours */
       if (sscanf(time,"%lf:%lf:%lf",&hour,&min,&sec)!=3)

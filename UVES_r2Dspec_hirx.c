@@ -569,7 +569,9 @@ int UVES_r2Dspec_hirx(spectrum *spec, params *par) {
 \tin binary table in FITS file\n\t%s","RES",spec->wlfile);
     /* Diffraction order numbers contained in the next HDU */
     /* Move to next HDU */
-    if (fits_movrel_hdu(infits,1,&hdutype,&status));
+    if (fits_movrel_hdu(infits,1,&hdutype,&status))
+      errormsg("UVES_r2Dspec_hirx(): Could not move to third HDU\n\
+\tin file %s",spec->wlfile);
     /* Check HDU type */
     if (hdutype!=BINARY_TBL)
       errormsg("UVES_r2Dspec_hirx(): Extension %d not a binary table\n\

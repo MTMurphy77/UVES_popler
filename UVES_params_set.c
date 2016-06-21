@@ -61,8 +61,8 @@ int UVES_params_set(params *par) {
   if (par->vshift==-1) par->vshift=VSHIFT;
   if (par->backvers==-1) par->backvers=0;
 
-  if (!par->macmapfile) sprintf(par->macmapfile,"%s",MACMAPFILE);
-  if (!par->vshiftfile) sprintf(par->vshiftfile,"%s",VSHIFTFILE);
+  if (!strncmp(par->macmapfile,"\0",1)) sprintf(par->macmapfile,"%s",MACMAPFILE);
+  if (!strncmp(par->vshiftfile,"\0",1)) sprintf(par->vshiftfile,"%s",VSHIFTFILE);
 
   return 1;
 
