@@ -1,8 +1,10 @@
 /****************************************************************************
-* Combined the spectra by finding continuous regions of spectrum and
+* Combine the spectra by finding continuous regions of spectrum and
 * hierachically combining nearby spectra, matching only the overlapping
 * regions in the flux domain.
 ****************************************************************************/
+
+#include <stdio.h>
 
 #include <stdlib.h>
 #include <math.h>
@@ -18,7 +20,8 @@ int UVES_rescale_region(spectrum *spec, int nspec, cspectrum *cspec, action *act
   double  scale=0.0,escale=0.0,maxsnr=0.0,wgt=0.0,maxwgt=0.0,a=0.0,aerr=0.0,chisq=0.0;
   double  *fit_y=NULL,*fit_e=NULL;
   int     nor=0,noo=0,normax=0,ncov=0,nused=0,region=1,csidx=0,ceidx=0,no=0,nomax=0;
-  int     oosidx=0,ooeidx=0,ocsidx=0,oceidx=0;
+  int     oosidx=0,ocsidx=0;
+  // int     ooeidx=0,oceidx=0;
   int     scsidx=0,sceidx=0;
   int     nfix=0,comb=0,fixed=-1,fit_n=0;
   int     i=0,j=0,k=0,l=0;
@@ -166,8 +169,8 @@ int UVES_rescale_region(spectrum *spec, int nspec, cspectrum *cspec, action *act
 	   user */
 	if (fixed==-1) {
 	  no=nomax;
-	  ocsidx=(MAX(csidx,spec[oo[0][0]].or[oo[0][1]].csidx)); oceidx=ocsidx+no;
-	  oosidx=ocsidx-spec[oo[0][0]].or[oo[0][1]].csidx; ooeidx=oosidx+no;
+	  ocsidx=(MAX(csidx,spec[oo[0][0]].or[oo[0][1]].csidx)); // oceidx=ocsidx+no;
+	  oosidx=ocsidx-spec[oo[0][0]].or[oo[0][1]].csidx; // ooeidx=oosidx+no;
 	  /* Allocate memory for fitting arrays */
 	  if (!par->scalmeth) {
 	    if ((fit_y=darray(no))==NULL)
@@ -210,7 +213,7 @@ int UVES_rescale_region(spectrum *spec, int nspec, cspectrum *cspec, action *act
 	      /* Initialize clip array */
 	      for (i=0; i<fit_n; i++) clip[i]=1;
 	      /* Do sigma-clipping */
-	      if (!sigclip(fit_y,fit_e,NULL,NULL,fit_n,scalclip,&stat,clip))
+	      if (!sigclip(fit_y,fit_e,NULL,NULL,fit_n,scalclip,&stat,clip,0))
 		errormsg("UVES_rescale_region(): Error returned from sigclip()");
 	      scale=stat.wmean; escale=stat.ewmean;
 	    } else scale=1.0;
@@ -239,6 +242,15 @@ int UVES_rescale_region(spectrum *spec, int nspec, cspectrum *cspec, action *act
 	    spec[oo[0][0]].or[oo[0][1]].rder[i]/=scale;
 	    spec[oo[0][0]].or[oo[0][1]].rdef[i]/=scale;
 	    spec[oo[0][0]].or[oo[0][1]].rdme[i]/=scale;
+	  }
+	  /* Scale alternative arrays for pre-v0.74 backwards compatibility */
+	  if (par->version<0.74 && spec[oo[0][0]].or[oo[0][1]].rdfl_a!=NULL) {
+	    for (i=0; i<spec[oo[0][0]].or[oo[0][1]].nrdp; i++) {
+	      spec[oo[0][0]].or[oo[0][1]].rdfl_a[i]/=scale;
+	      spec[oo[0][0]].or[oo[0][1]].rder_a[i]/=scale;
+	      spec[oo[0][0]].or[oo[0][1]].rdef_a[i]/=scale;
+	      spec[oo[0][0]].or[oo[0][1]].rdme_a[i]/=scale;
+	    }
 	  }
 	  /* Record scaling for any later undo action */
 	  spec[oo[0][0]].or[oo[0][1]].ascl=1;

@@ -315,7 +315,7 @@ int UVES_r2Dspec_hirx(spectrum *spec, params *par) {
 
   /** When there's 5 HDU's, this next HDU should contain the extracted
       flat-field flux (i.e. some measure of the blaze function) **/
-  if (par->thar<=1 && hdunum==5) {
+  if (par->thar<=1 && !norm) {
     /* Move to next HDU */
     if (fits_movrel_hdu(infits,1,&hdutype,&status))
       errormsg("UVES_r2Dspec_hirx(): Could not move to fourth HDU\n\
@@ -357,14 +357,14 @@ int UVES_r2Dspec_hirx(spectrum *spec, params *par) {
     /* Read in or, in this case, set archival filename */
     sprintf(spec->tharfile,"%s",spec->abthfile);
     /* Get modified julian day */
-    if (fits_read_key(infits,TDOUBLE,"MJD",&(spec->thjd),comment,&status))
+    if (fits_read_key(infits,TDOUBLE,"MJD",&(spec->wc_jd),comment,&status))
       errormsg("UVES_r2Dspec_hirx(): Cannot read value of header card %s\n\
 \tfrom FITS file %s.","MJD",spec->thfile);
     /* Convert to Julian day */
-    spec->thjd+=2400000.5;
+    spec->wc_jd+=2400000.5;
     /* Find the temperature in each arm and the atmospheric pressure */
     /* At the moment, these values are just set to arbitrary numbers */
-    spec->thtemp=spec->thpres=-1.0;
+    spec->wc_temp=spec->wc_pres=-1.0;
     /* Get image dimensions */
     if (fits_get_img_param(infits,9,&bitpix,&naxis,naxes,&status))
       errormsg("UVES_r2Dspec_hirx(): Couldn't get image dimensions for\n\
@@ -423,7 +423,7 @@ int UVES_r2Dspec_hirx(spectrum *spec, params *par) {
   }
 
   /** Normalize by fits to the blaze function if necessary **/
-  if (par->thar<=1 && hdunum==5) {
+  if (par->thar<=1 && !norm) {
     /* Allocate memory for matrix to hold blaze */
     if ((blzfit=darray(spec->or[0].np))==NULL)
       errormsg("UVES_r2Dspec_hirx(): Cannot allocate memory for blzfit\n\

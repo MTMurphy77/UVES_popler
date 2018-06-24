@@ -26,7 +26,7 @@ int UVES_r1Dspec(cspectrum *cspec, params *par) {
   char     comment[FLEN_COMMENT]="\0";
   char     dummy[FLEN_KEYWORD]="\0";
   char     search[FLEN_CARD]="HISTORY\0",card[FLEN_CARD]="\0";
-  char     *inclist[1],*cptr;
+  char     *inclist[1];
   FILE     *data_file=NULL;
   fitsfile *infits;
 
@@ -450,7 +450,7 @@ int UVES_r1Dspec(cspectrum *cspec, params *par) {
     }
     /* Read in data */
     for (i=0; i<cspec->np; i++) {
-      cptr=fgets(buffer,LNGSTRLEN,data_file);
+      fgets(buffer,LNGSTRLEN,data_file);
       if (naxes==3) {
 	if (sscanf(buffer,"%lf %lf %lf",&(cspec->wl[i]),&(cspec->fl[i]),
 		 &(cspec->er[i]))!=3) {

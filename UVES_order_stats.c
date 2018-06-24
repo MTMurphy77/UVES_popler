@@ -33,7 +33,6 @@ int UVES_order_stats(echorder *ord, params *par) {
       data[nval++]=ord->rdfl[i]/ord->rder[i];
     }
   }
-
   /* Find median S/N of valid pixels in order */
   if (!median(data,NULL,nval,&stat,0)) {
     nferrormsg("UVES_order_stats(): Error returned from median()"); return 0;
@@ -44,6 +43,14 @@ int UVES_order_stats(echorder *ord, params *par) {
   if (!medianrun(ord->rder,ord->rdme,ord->rdst,ord->nrdp,NMEDERR)) {
     nferrormsg("UVES_order_stats(): Error returned from medianrun()");
     return 0;
+  }
+  /* Calculate the median-smoothed alternative error array for
+     pre-v0.74 backwards compatibility */
+  if (par->version<0.74) {
+    if (!medianrun(ord->rder_a,ord->rdme_a,ord->rdst,ord->nrdp,NMEDERR)) {
+      nferrormsg("UVES_order_stats(): Error returned from medianrun()");
+      return 0;
+    }
   }
 
   /* Clean up */

@@ -295,19 +295,19 @@ int UVES_r2Dspec_iraf(spectrum *spec, params *par) {
     sprintf(spec->tharfile,"%s",spec->abthfile);
 
     /* Get observation epoch */
-    if (fits_read_key(infits,TDOUBLE,"OBSEPOCH",&(spec->thjd),comment,&status)) {
+    if (fits_read_key(infits,TDOUBLE,"OBSEPOCH",&(spec->wc_jd),comment,&status)) {
       /* Get modified julian day */
       status=0;
-      if (fits_read_key(infits,TDOUBLE,"MJD",&(spec->thjd),comment,&status))
+      if (fits_read_key(infits,TDOUBLE,"MJD",&(spec->wc_jd),comment,&status))
 	errormsg("UVES_r2Dspec_iraf(): Cannot read value of header cards %s\n\
 \tor %s from FITS file %s.","OBSEPOCH","MJD",spec->thfile);
       /* Convert to Julian day */
-      spec->thjd+=2400000.5;
-    } else spec->thjd=ast_epoch2jd(spec->thjd);
+      spec->wc_jd+=2400000.5;
+    } else spec->wc_jd=ast_epoch2jd(spec->wc_jd);
 
     /* Find the temperature in each arm and the atmospheric pressure */
     /* At the moment, these values are just set to arbitrary numbers */
-    spec->thtemp=spec->thpres=-1.0;
+    spec->wc_temp=spec->wc_pres=-1.0;
 
     /* Get image dimensions */
     if (fits_get_img_param(infits,9,&bitpix,&naxis,naxes,&status))

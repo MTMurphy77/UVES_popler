@@ -1,5 +1,5 @@
 /****************************************************************************
-* Combined the spectra by finding continuous regions of spectrum and
+* Combine the spectra by finding continuous regions of spectrum and
 * hierachically combining nearby spectra, matching only the overlapping
 * regions in the flux domain.
 ****************************************************************************/
@@ -17,7 +17,8 @@ int UVES_combine_region(spectrum *spec, int nspec, cspectrum *cspec, params *par
   double  scale=0.0,scalerr=0.0,maxsnr=0.0,wgt=0.0,maxwgt=0.0,a=0.0,aerr=0.0,chisq=0.0;
   double  *fit_y=NULL,*fit_e=NULL;
   int     nor=0,noo=0,normax=0,nused=0,region=1,csidx=0,ceidx=0,no=0,nomax=0;
-  int     oosidx=0,ooeidx=0,ocsidx=0,oceidx=0;
+  int     oosidx=0,ocsidx=0;
+  // int     ooeidx=0,oceidx=0;
   int     rank=0;
   int     fit_n=0;
   int     i=0,j=0,k=0,l=0;
@@ -42,6 +43,13 @@ int UVES_combine_region(spectrum *spec, int nspec, cspectrum *cspec, params *par
 	    spec[i].or[j].rdfl[l]*=scale; spec[i].or[j].rdme[l]*=scale;
 	    if (spec[i].or[j].rdst[l]==1) {
 	      spec[i].or[j].rder[l]*=scale; spec[i].or[j].rdef[l]*=scale;
+	    }
+	    /* Also scale alternative arrays for pre-v0.74 backwards compatibility */
+	    if (par->version<0.74) {
+	      spec[i].or[j].rdfl_a[l]*=scale; spec[i].or[j].rdme_a[l]*=scale;
+	      if (spec[i].or[j].rdst[l]==1) {
+		spec[i].or[j].rder_a[l]*=scale; spec[i].or[j].rdef_a[l]*=scale;
+	      }
 	    }
 	  }
 	}
@@ -126,8 +134,8 @@ int UVES_combine_region(spectrum *spec, int nspec, cspectrum *cspec, params *par
       /*** Find scale factor relating combined spectrum and newly found
 	   overlapping order ***/
       no=nomax;
-      ocsidx=(MAX(csidx,spec[oo[0][0]].or[oo[0][1]].csidx)); oceidx=ocsidx+no;
-      oosidx=ocsidx-spec[oo[0][0]].or[oo[0][1]].csidx; ooeidx=oosidx+no;
+      ocsidx=(MAX(csidx,spec[oo[0][0]].or[oo[0][1]].csidx)); // oceidx=ocsidx+no;
+      oosidx=ocsidx-spec[oo[0][0]].or[oo[0][1]].csidx; // ooeidx=oosidx+no;
       if (par->thar<=1) {
 	/** For object frames, just find best fitting ratio of overalapping
 	    orders **/
@@ -163,7 +171,7 @@ int UVES_combine_region(spectrum *spec, int nspec, cspectrum *cspec, params *par
 	    /* Initialize clip array */
 	    for (i=0; i<fit_n; i++) clip[i]=1;
 	    /* Do the sigma-clipping */
-	    if (!sigclip(fit_y,fit_e,NULL,NULL,fit_n,par->scalclip,&stat,clip))
+	    if (!sigclip(fit_y,fit_e,NULL,NULL,fit_n,par->scalclip,&stat,clip,0))
 	      errormsg("UVES_combine_region(): Error returned from sigclip()");
 	    scale=stat.wmean; scalerr=stat.ewmean;
 	  } else scale=1.0;
@@ -192,6 +200,15 @@ int UVES_combine_region(spectrum *spec, int nspec, cspectrum *cspec, params *par
 	  spec[oo[0][0]].or[oo[0][1]].rder[i]/=scale;
 	  spec[oo[0][0]].or[oo[0][1]].rdef[i]/=scale;
 	  spec[oo[0][0]].or[oo[0][1]].rdme[i]/=scale;
+	}
+	/* Also scale alternative arrays for pre-v0.74 backwards compatibility */
+	if (par->version<0.74) {
+	  for (i=0; i<spec[oo[0][0]].or[oo[0][1]].nrdp; i++) {
+	    spec[oo[0][0]].or[oo[0][1]].rdfl_a[i]/=scale;
+	    spec[oo[0][0]].or[oo[0][1]].rder_a[i]/=scale;
+	    spec[oo[0][0]].or[oo[0][1]].rdef_a[i]/=scale;
+	    spec[oo[0][0]].or[oo[0][1]].rdme_a[i]/=scale;
+	  }
 	}
 	/* Update scale factor applied to this order */
 	spec[oo[0][0]].or[oo[0][1]].scl/=scale;

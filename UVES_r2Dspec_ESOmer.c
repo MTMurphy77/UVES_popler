@@ -300,11 +300,11 @@ int UVES_r2Dspec_ESOmer(spectrum *spec, params *par) {
       errormsg("UVES_r2Dspec_ESOmer(): Cannot read value of header card \n\
 \t%s from FITS file\n\t%s.","ARCFILE",spec->thfile);
     /* Get modified julian day */
-    if (fits_read_key(infits,TDOUBLE,"MJD-OBS",&(spec->thjd),comment,&status))
+    if (fits_read_key(infits,TDOUBLE,"MJD-OBS",&(spec->wc_jd),comment,&status))
       errormsg("UVES_r2Dspec_ESOmer(): Cannot read value of header card %s\n\
 \tfrom FITS file %s.","MJD-OBS",spec->thfile);
     /* Convert to Julian day */
-    spec->thjd+=2400000.5;
+    spec->wc_jd+=2400000.5;
     /* Find the temperature in each arm and the atmospheric pressure */
     if (fits_read_key(infits,TSTRING,"HIERARCH ESO INS PATH",card,comment,&status))
       errormsg("UVES_r2Dspec_ESOmer(): Cannot read value of header card\n\
@@ -312,11 +312,11 @@ int UVES_r2Dspec_ESOmer(spectrum *spec, params *par) {
     if (strstr(card,"RED")!=NULL || strstr(card,"red")!=NULL)
       sprintf(card,"HIERARCH ESO INS TEMP2 MEAN");
     else sprintf(card,"HIERARCH ESO INS TEMP1 MEAN");
-    if (fits_read_key(infits,TDOUBLE,card,&(spec->thtemp),comment,&status))
+    if (fits_read_key(infits,TDOUBLE,card,&(spec->wc_temp),comment,&status))
       errormsg("UVES_r2Dspec_ESOmer(): Cannot read value of header card\n\
 \t%s from FITS file %s.",card,spec->thfile);
     if (fits_read_key(infits,TDOUBLE,"HIERARCH ESO INS SENS26 MEAN",
-		      &(spec->thpres),comment,&status))
+		      &(spec->wc_pres),comment,&status))
       errormsg("UVES_r2Dspec_ESOmer(): Cannot read value of header card\n\
 \t%s from FITS file %s.","HIERARCH ESO INS SENS26 MEAN",spec->thfile);
     /* Get image dimensions */

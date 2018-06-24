@@ -59,6 +59,13 @@ int UVES_skysub(spectrum *spec, cspectrum *cspec, params *par) {
 				       spec->ss.or[m].rder[k]*spec->ss.or[m].rder[k]);
 	      spec->or[l].rdef[i]=sqrt(spec->or[l].rdef[i]*spec->or[l].rdef[i]+
 				       spec->ss.or[m].rdef[k]*spec->ss.or[m].rdef[k]);
+	      /* Do the subtraction for alternative arrays for
+		 pre-v0.74 backwards compatibility */
+	      spec->or[l].rdfl_a[i]-=spec->ss.or[m].rdfl[k];
+	      spec->or[l].rder_a[i]=sqrt(spec->or[l].rder_a[i]*spec->or[l].rder_a[i]+
+					 spec->ss.or[m].rder[k]*spec->ss.or[m].rder[k]);
+	      spec->or[l].rdef_a[i]=sqrt(spec->or[l].rdef_a[i]*spec->or[l].rdef_a[i]+
+					 spec->ss.or[m].rdef[k]*spec->ss.or[m].rdef[k]);
 	    }
 	  }
 	} else {

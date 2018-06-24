@@ -28,8 +28,8 @@ int UVES_plot_cspec(spectrum *spec, int nspec, cspectrum *cspec, cplot *cp,
   double         *fco=NULL;
   float          swl=0.0,ewl=0.0;
   float          flmin=0.0,flmax=0.0;
-  float          csqmin=0.0,csqmax=0.0;
-  float          ncbmin=0.0,ncbmax=0.0;
+  float          csqmax=0.0,ncbmax=0.0;
+  // float          csqmin=0.0,ncbmin=0.0;
   float          shflmin=INFIN,shflmax=0.0;
   float          pgx=0.0,pgy=0.0,pgxo=0.0,pgyo=0.0;
   float          step=0.0,clickx=0.0,fscale=0.0,cdist=0.0,ftemp=0.0;
@@ -44,7 +44,7 @@ int UVES_plot_cspec(spectrum *spec, int nspec, cspectrum *cspec, cplot *cp,
   int            nor=0,ncon=0,npcon=0,nscon=0,tscon=0,idx=0;
   int            fsp=0,fep=0,fnp=0,fbsp=0,fbep=0,fbsnp=0,fbenp=0,fosp=0,foep=0;
   int            plval=0,status=0,soact=0,sclinit=-1,con_redo=1;
-  int            fit_typ=0,fit_ord=0,fit_rs=0,clicknp=0;
+  int            fit_typ=0,fit_ord=0,fit_rs=0,clicknp=0,allUVES=1;
   int            i=0,j=0,k=0,l=0,m=0,firstfit=0,selpix=0;
   int            *fst=NULL;
   int            **con=NULL,**scon=NULL;
@@ -130,8 +130,8 @@ int UVES_plot_cspec(spectrum *spec, int nspec, cspectrum *cspec, cplot *cp,
     flmin=cp->ymn; flmax=cp->ymx;
   }
   plval=cp->plval;
-  csqmin=fjmin(&(csq[sp]),cnp); csqmax=fjmax(&(csq[sp]),cnp);
-  ncbmin=fjmin(&(ncb[sp]),cnp); ncbmax=fjmax(&(ncb[sp]),cnp);
+  // csqmin=fjmin(&(csq[sp]),cnp); ncbmin=fjmin(&(ncb[sp]),cnp);
+  csqmax=fjmax(&(csq[sp]),cnp); ncbmax=fjmax(&(ncb[sp]),cnp);
   plenv.xmin[0]=shwl[0]; plenv.xmax[0]=shwl[shnp-1];
   plenv.ymax[0]=1.1*shflmax; plenv.ymin[0]=-0.1*plenv.ymax[0];
   plenv.xmin[1]=swl; plenv.xmax[1]=ewl;
@@ -654,7 +654,7 @@ Options for navigation/editing using detailed spectrum (flux panel):\n\
 		      " wm=%9.6lf +/- %8.6lf  me=%8.6lf chisqe=%8.6lf pe=%8.6lf\n",
 			stdat.wmean,stdat.ewmean,stdat.meansig,stdat.rchisq,pe);
 	      } else
-		fprintf(stderr,"No valid pixels in this order in specified range");
+		fprintf(stderr,"No valid pixels in this order in specified range\n");
 	      /* Clean up */
 	      free(dat); free(err); free(efl); free(med);
 	    }
@@ -678,7 +678,7 @@ Options for navigation/editing using detailed spectrum (flux panel):\n\
 			stdat.wmean,stdat.ewmean,stdat.meansig,stdat.rchisq,pe);
 	      } else
 		fprintf(stderr,
-			"No valid pixels in combined spectrum in specified range");
+			"No valid pixels in combined spectrum in specified range\n");
 	    }
 	  }
 	}
@@ -718,7 +718,7 @@ Options for navigation/editing using detailed spectrum (flux panel):\n\
 		  err[ndat++]=spec[con[i][0]].or[con[i][1]].rder[j]; k++;
 		} else err[ndat++]=-INFIN;
 	      }
-	      /* Calculate EWs using the unwieghted method */
+	      /* Calculate EWs using the unweighted method */
 	      ew=eew=0.0;
 	      cwl=0.5*(double)(pgx+pgxo); cwin=C_C_K*(double)(pgx-pgxo)/cwl;
 	      if (!EW(&(cspec->wl[csp]),
@@ -1034,6 +1034,14 @@ n=%6d\n",cspec->fl[csp],cspec->er[csp],cspec->ef[csp],cspec->co[csp],csp+1);
       con_redo=0;
     }
     else if (!strncmp(pgch,"s",1)) {
+      /** Save UPL and FITS file **/
+      /* First calculate statistics of combined spectrum */
+      /* Note: At present, this is only done for UVES spectra */
+      for (i=0; i<nspec; i++) if (spec[i].ftype!=FTUVES) { allUVES=0; break; }
+      if (allUVES) {
+	if (!UVES_cspec_stats(spec,nspec,cspec,par))
+	  warnmsg("UVES_plot_cspec(): Error returned from UVES_cspec_stats()");
+      }
       if (!UVES_wUPLfile(cspec->UPLfile,spec,nspec,*act,*nact,cspec,par))
 	errormsg("Unknown error returned from UVES_wUPLfile()");
       *nact_save=*nact;

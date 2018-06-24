@@ -19,12 +19,13 @@
 int UVES_rUPLfile(char *infile, spectrum **spec, int *nspec, action **act,
 		  int *nact, cspectrum *cspec, params *par) {
 
-  double ddum=0.0;
+  double inscl=0.0,ddum=0.0;
   int    idx=0;
   int    idum=0;
-  int    i=0,j=0,k=0;
+  int    i=0,j=0,k=0,l=0;
   char   buffer[LNGSTRLEN]="\0",newname[LNGSTRLEN]="\0";
   char   stro[LNGSTRLEN]="\0",strn[LNGSTRLEN]="\0";
+  char   fluxerrstr[NAMELEN]="\0",befaftstr[NAMELEN]="\0",insclstr[VLNGSTRLEN]="\0";
   char   *cptr,*cp1,*cp2,*cp3,*cp4;
   macmap mmap;
   FILE   *data_file=NULL;
@@ -41,9 +42,11 @@ int UVES_rUPLfile(char *infile, spectrum **spec, int *nspec, action **act,
     errormsg("UVES_rUPLfile(): Cannot read UPL version number in\n\tfile %s",
 	     infile);
   /* Bug in auto-scaling feature was fixed in version 0.40 in
-     UVES_rescale_region.c so UPL files before this should be rebadged
-     with the same UPL version number for backwards-compatibility. */
-  if (par->version<0.40) par->backvers=1;
+     UVES_rescale_region.c and method of redispersing spectra changed
+     slightly in version 0.74. Therefore, UPL files from before
+     version 0.74 before should be rebadged with the same UPL version
+     number for backwards-compatibility. */
+  if (par->version<0.74) par->backvers=1;
   /* Exit if the user is using a UPL file which is from a newer
      version of UVES_popler that the one they are currently
      running */
@@ -69,8 +72,8 @@ int UVES_rUPLfile(char *infile, spectrum **spec, int *nspec, action **act,
     } else if (par->filetype==-2) {
       par->filetype=idum;
       if (par->filetype<FTMIX || par->filetype>FTCOMB)
-	errormsg("UVES_rUPLfile(): 'filetype' must be >= %d and\n\
-<= %d in UPL file %s",FTMIX,FTCOMB,infile);
+	errormsg("UVES_rUPLfile(): 'filetype' must be >= %d and <= %d in UPL file\n\
+\t%s",FTMIX,FTCOMB,infile);
     }
   } else par->filetype=FILETYPE;
   if (par->version>=0.31) {
@@ -290,8 +293,8 @@ int UVES_rUPLfile(char *infile, spectrum **spec, int *nspec, action **act,
     }
   } else mmap.nmap=0;
   
-  /* Get file paths, file names, velocity shifts, random distortion
-     seeds and assign identity numbers */
+  /* Get file paths, file names, flux/error scalings, velocity shifts,
+     random distortion seeds and assign identity numbers */
   /* Treat special case of reading in an already-combined spectrum first */
   if (par->filetype==FTCOMB) {
     READ_DATA_FILE;
@@ -310,6 +313,7 @@ int UVES_rUPLfile(char *infile, spectrum **spec, int *nspec, action **act,
     if (sscanf(buffer,"%d_%*s",&j)!=1) { fclose(data_file); ERR_FMT; }
     for (i=0; i<*nspec; i++) {
       (*spec)[i].ftype=-2; (*spec)[i].vshift=(*spec)[i].vslope=(*spec)[i].refwav=0.0;
+      strcpy((*spec)[i].inscl,"\0");
       while (sscanf(buffer,"%d_%*s",&k)==1 && k==j) {
 	if (sscanf(buffer,"%*d_FTYP = %d",&((*spec)[i].ftype))==1) READ_DATA_FILE;
 	if (sscanf(buffer,"%*d_PATH = %s",(*spec)[i].path)==1) READ_DATA_FILE;
@@ -317,6 +321,27 @@ int UVES_rUPLfile(char *infile, spectrum **spec, int *nspec, action **act,
 	if (sscanf(buffer," %*d_ERRO = %s",(*spec)[i].aberfile)==1) READ_DATA_FILE;
 	if (sscanf(buffer," %*d_THAR = %s",(*spec)[i].abthfile)==1) READ_DATA_FILE;
 	if (sscanf(buffer," %*d_WPOL = %s",(*spec)[i].abwlfile)==1) READ_DATA_FILE;
+	if (sscanf(buffer," %*d_SCAL_%d = %s %lf %s",&l,fluxerrstr,&inscl,
+		   befaftstr)==4) {
+	  sprintf(insclstr,"%d,",l);
+	  if (!strncmp(fluxerrstr,"f",1)) sprintf(insclstr+strlen(insclstr),"0,");
+	  else if (!strncmp(fluxerrstr,"e",1)) sprintf(insclstr+strlen(insclstr),"1,");
+	  else if (!strncmp(fluxerrstr,"fe",2) || !strncmp(fluxerrstr,"ef",2))
+	    sprintf(insclstr+strlen(insclstr),"2,");
+	  else errormsg("UVES_rUPLfile(): Do not understand format of flux/error\n\
+\tscaling string, %s, for order %d of flux file %d,\n\t%s/%s,\n\tin UPL file %s.\n\
+\tAllowed formats are f, e, ef or fe.",fluxerrstr,l+1,i+1,(*spec)[i].path,(*spec)[i].abfile,
+			infile);
+	  sprintf(insclstr+strlen(insclstr),"%lf,",inscl);
+	  if (!strncmp(befaftstr,"b",1)) sprintf(insclstr+strlen(insclstr),"1;");
+	  else if (!strncmp(befaftstr,"a",1)) sprintf(insclstr+strlen(insclstr),"2;");
+	  else errormsg("UVES_rUPLfile(): Do not understand format of before/after\n\
+\tstring, %s, for order %d of flux file %d,\n\t%s/%s,\n\tin UPL file %s.\n\
+\tAllowed formats are f, e, ef or fe.",befaftstr,l+1,i+1,(*spec)[i].path,(*spec)[i].abfile,
+			infile);
+	  sprintf((*spec)[i].inscl+strlen((*spec)[i].inscl),"%s",insclstr);
+	  READ_DATA_FILE;
+	}
 	if (sscanf(buffer," %*d_VSHT = %lf %lf %lf",&((*spec)[i].vshift),&((*spec)[i].vslope),
 		   &((*spec)[i].refwav))==3) { READ_DATA_FILE; }
 	else if (sscanf(buffer," %*d_VSHT = %lf",&((*spec)[i].vshift))==1) { READ_DATA_FILE; }
@@ -333,34 +358,34 @@ int UVES_rUPLfile(char *infile, spectrum **spec, int *nspec, action **act,
     if (par->filetype==FTMIX && (*spec)[i].ftype==-2) {
       fclose(data_file);
       errormsg("UVES_rUPLfile(): No filetype flag read from UPL file\n\
-\t%s for spectrum %d\n\t%s.\n\tMixed filetype was specified so each\n\
+\t%s for spectrum %d\n\t%s/%s.\n\tMixed filetype was specified so each\n\
 \tspectrum must have individual filetype flag in UPL file.",infile,i+1,
-	       (*spec)[i].file);
+	       (*spec)[i].path,(*spec)[i].abfile);
     } else if (par->filetype==-2) (*spec)[i].ftype=FILETYPE;
     else if (par->filetype!=FTMIX && (*spec)[i].ftype==-2)
       (*spec)[i].ftype=par->filetype;
     /* Ensure path and necessary files have been specified */
     if (strlen((*spec)[i].path)<3)
       errormsg("UVES_rUPLfile(): No path read from UPL file\n\
-\t%s for spectrum %d\n\t%s",infile,i+1,(*spec)[i].file);
+\t%s for spectrum %d\n\t%s/%s",infile,i+1,(*spec)[i].path,(*spec)[i].abfile);
     if (strlen((*spec)[i].abfile)<3)
       errormsg("UVES_rUPLfile(): No flux file read from UPL file\n\
-\t%s for spectrum %d\n\t%s",infile,i+1,(*spec)[i].file);
+\t%s for spectrum %d\n\t%s/%s",infile,i+1,(*spec)[i].path,(*spec)[i].abfile);
     if (par->thar<=1) {
       if (strlen((*spec)[i].aberfile)<3)
 	errormsg("UVES_rUPLfile(): No flux file read from UPL file\n\
-\t%s for spectrum %d\n\t%s",infile,i+1,(*spec)[i].file);
+\t%s for spectrum %d\n\t%s/%s",infile,i+1,(*spec)[i].path,(*spec)[i].abfile);
     }
     if (strlen((*spec)[i].abwlfile)<3)
       errormsg("UVES_rUPLfile(): No wavelength info file read from UPL file\n\
-\t%s for spectrum %d\n\t%s",infile,i+1,(*spec)[i].file);
+\t%s for spectrum %d\n\t%s/%s",infile,i+1,(*spec)[i].path,(*spec)[i].abfile);
     if (par->thar==1) {
       /* Set default file names for the ThAr spectra if the user has
 	 not entered them in the UPL file */
       if ((cptr=strstr((*spec)[i].abfile,"_"))==NULL)
 	errormsg("UVES_rUPLfile(): Cannot identify an '_' in flux file\n\
-\tname\n\t%s\n\tto separate file type and object name. I therefore cannot\n \
-\tdetermine the default name for the associated ThAr file. Please rename your\n	\
+\tname\n\t%s\n\tto separate file type and object name. I therefore cannot\n\
+\tdetermine the default name for the associated ThAr file. Please rename your\n\
 \tfiles according to the correct conventions and try again.",(*spec)[i].abfile);
       cptr++;
       switch ((*spec)[i].ftype) {
@@ -442,6 +467,10 @@ int UVES_rUPLfile(char *infile, spectrum **spec, int *nspec, action **act,
   if (sscanf(buffer,"Number_of_actions = %d",nact)!=1) {
     fclose(data_file); ERR_FMT;
   }
+  /* If there's no actions and the UPL file is pre-version-0.74, then
+     switch back to using this running UVES_popler version and switch
+     the backvers flag off */
+  if (!*nact && par->version<0.74) { par->version=VERSION; par->backvers=0; }
   
   /* Allocate memory for required number of actions */
   if (!(*act=(action *)malloc((size_t)(*nact*sizeof(action)))))
@@ -616,7 +645,7 @@ int UVES_rUPLfile(char *infile, spectrum **spec, int *nspec, action **act,
   cptr=fgets(buffer,LNGSTRLEN,data_file);
   if (!feof(data_file))
     warnmsg("UVES_rUPLfile(): Read in %d actions but more actions\n\
-\tmay exist in UPL file, %s. I am continuing but, be warned,\n		\
+\tmay exist in UPL file, %s. I am continuing but, be warned,\n\
 \tyou may lose actions. Press ctrl-c to quit now if desired.",*nact,infile);
   fclose(data_file);
 

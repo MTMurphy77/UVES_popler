@@ -160,17 +160,44 @@ in FITS file\n\t%s","DATE-OBS",date,spec->file);
 \tfrom FITS file %s.","EXPTIME",spec->file);
 
   /* Check for heliocentric & vaccum corrections in header */
-  if (fits_read_key(infits,TSTRING,"VACUUM",dummy,comment,&status)) {
-    if (!strcmp(dummy,"Air to vacuum correction applied."))
-      errormsg("UVES_r2Dspec_makee(): A vacuum correction has been\n\
-\tapplied to FITS file\n\t%s.\n\tInput files should be uncorrected",spec->file);
+  if (!fits_read_key(infits,TSTRING,"VACUUM",dummy,comment,&status) &&
+      !strcmp(dummy,"Air to vacuum correction applied.")) {
+    if (!par->vacwl) {
+      warnmsg("UVES_r2Dspec_makee(): The FITS file\n\t%s\n\
+\tsays that a vacuum correction has already been applied but you\n\
+\thave not used the \"-vacwl\" command-line option.\n\
+\tYou should either input uncorrected FITS files or use \"-vacwl\".\n\
+\tContinuing, but beware that resulting spectrum may not be in\n\
+\tvacuum frame.",spec->file);
+    }
+  }
+  else if (par->vacwl) {
+    warnmsg("UVES_r2Dspec_makee(): The FITS file\n\t%s\n\
+\tdoes not say that a vacuum correction has been applied but you\n\
+\thave told me not to apply my own (by using the \"-vacwl\"\n\
+\tcommand-line option). Normally, with uncorrected input files,\n\
+\tyou should not use \"-vacwl\". Continuing, but beware that\n\
+\tresulting spectrum may not be in vacuum frame.",spec->file);
   }
   status=0;
-  if (fits_read_key(infits,TSTRING,"HELIOCNT",dummy,comment,&status)) {
-    if (!strcmp(dummy,"Heliocentric correction applied."))
-      errormsg("UVES_r2Dspec_makee(): A heliocentric correction has\n\
-\tbeen applied to FITS file\n\t%s.\n\tInput files should be uncorrected",
-	       spec->file);
+  if (!fits_read_key(infits,TSTRING,"HELIOCNT",dummy,comment,&status) &&
+      !strcmp(dummy,"Heliocentric correction applied.")) {
+    if (!par->helio) {
+      warnmsg("UVES_r2Dspec_makee(): The FITS file\n\t%s\n\
+\tsays that a heliocentric correction has already been applied\n\
+\tbut you have not used the \"-helio\" command-line option.\n\
+\tYou should either input uncorrected FITS files or use \"-helio\".\n\
+\tContinuing, but beware that resulting spectrum may not be in\n\
+\theliocentric frame.",spec->file);
+    }
+  }
+  else if (par->helio) {
+    warnmsg("UVES_r2Dspec_makee(): The FITS file\n\t%s\n\
+\tdoes not say that a heliocentric correction has been applied\n\
+\tbut you have told me not to apply my own (by using the \"-helio\"\n\
+\tcommand-line option). Normally, with uncorrected input files,\n\
+\tyou should not use \"-helio\". Continuing, but beware that resulting\n\
+\tspectrum may not be in vacuum frame.",spec->file);
   }
   status=0;
 
@@ -298,15 +325,15 @@ in FITS file\n\t%s","DATE-OBS",date,spec->file);
     sprintf(spec->tharfile,"%s",spec->abthfile);
 
     /* Get modified julian day */
-    if (fits_read_key(infits,TDOUBLE,"MJD",&(spec->thjd),comment,&status))
+    if (fits_read_key(infits,TDOUBLE,"MJD",&(spec->wc_jd),comment,&status))
       errormsg("UVES_r2Dspec_makee(): Cannot read value of header card %s\n\
 \tfrom FITS file %s.","MJD",spec->thfile);
     /* Convert to Julian day */
-    spec->thjd+=2400000.5;
+    spec->wc_jd+=2400000.5;
 
     /* Find the temperature in each arm and the atmospheric pressure */
     /* At the moment, these values are just set to arbitrary numbers */
-    spec->thtemp=spec->thpres=-1.0;
+    spec->wc_temp=spec->wc_pres=-1.0;
 
     /* Get image dimensions */
     if (fits_get_img_param(infits,9,&bitpix,&naxis,naxes,&status))

@@ -63,7 +63,7 @@ int medianrun(double *dat, double *med, int *sts, int ndat, int nfilt);
 double ran(long *idum);
 int ranarray(double *array, int *idx, int n, long *idum);
 int sigclip(double *dat, double *err, double *efl, double *wgt, int ndat,
-	    double clipsig, statset *stat, int *clip);
+	    double clipsig, statset *stat, int *clip, int opt);
 int spearman(double *data1, double *data2, unsigned long n, double *d, double *zd,
 	     double *probd, double *rs, double *probrs);
 int stats(double *dat, double *sig, double *efl, double *wgt, int *sts, int ndat,

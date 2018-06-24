@@ -54,6 +54,7 @@ int UVES_params_set(params *par) {
   if (par->raw==-1) par->raw=RAW;
   if (par->replay==-1) par->replay=REPLAY;
   if (par->save==-1) par->save=SAVE;
+  if (par->scale==-1) par->scale=SCALE;
   if (par->scalmeth==-1) par->scalmeth=SCALMETH;
   if (par->nscalclip==-1) par->nscalclip=NSCALCLIP;
   if (par->thar==-1) par->thar=THAR;
@@ -62,6 +63,7 @@ int UVES_params_set(params *par) {
   if (par->backvers==-1) par->backvers=0;
 
   if (!strncmp(par->macmapfile,"\0",1)) sprintf(par->macmapfile,"%s",MACMAPFILE);
+  if (!strncmp(par->scalefile,"\0",1)) sprintf(par->scalefile,"%s",SCALEFILE);
   if (!strncmp(par->vshiftfile,"\0",1)) sprintf(par->vshiftfile,"%s",VSHIFTFILE);
 
   return 1;

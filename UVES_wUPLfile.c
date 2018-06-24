@@ -18,6 +18,7 @@ int UVES_wUPLfile(char *filename, spectrum *spec, int nspec, action *act,
   int       nval=0;
   int       i=0,j=0;
   char      user[NAMELEN],tstr[LNGSTRLEN];
+  char      flxerrstr[NAMELEN]="\0",befaftstr[NAMELEN]="\0";
   FILE      *data_file=NULL;
   struct tm *tptr;
   time_t    lt;
@@ -36,9 +37,9 @@ int UVES_wUPLfile(char *filename, spectrum *spec, int nspec, action *act,
 
   /* First line of log file is a timestamp and user info */
   sprintf(user,"%s",getenv("USER")); lt=time(NULL); tptr=localtime(&lt);
-  strftime(tstr,LNGSTRLEN,"%a %b %d %Y %H:%M:%S %Z (UTC%z)",tptr);
-  fprintf(data_file,"UVES_popler : Version %.2lf : %s : %s\n",
-	  version,tstr,user);
+  // strftime(tstr,LNGSTRLEN,"%a %b %d %Y %H:%M:%S %Z (UTC%z)",tptr);
+  strftime(tstr,LNGSTRLEN,"%Y-%m-%d:%H:%M:%S(UTC%z)",tptr);
+  fprintf(data_file,"UVES_popler : Version %.2lf UPL (v%.2lf code) : %s : %s\n",version,VERSION,tstr,user);
   fprintf(data_file,"\n");
 
   /* Print reduction parameters */
@@ -107,6 +108,19 @@ int UVES_wUPLfile(char *filename, spectrum *spec, int nspec, action *act,
     if (par->thar<=1) fprintf(data_file," %3.3d_ERRO = %s\n",i+1,spec[i].aberfile);
     if (par->thar==1) fprintf(data_file," %3.3d_THAR = %s\n",i+1,spec[i].abthfile);
     fprintf(data_file," %3.3d_WPOL = %s\n",i+1,spec[i].abwlfile);
+    if (version>=0.73) {
+      for (j=0; j<spec[i].nor; j++) {
+	if (spec[i].or[j].insclbefaft) {
+	  if (spec[i].or[j].insclfe==0) sprintf(flxerrstr,"f");
+	  else if (spec[i].or[j].insclfe==1) sprintf(flxerrstr,"e");
+	  else sprintf(flxerrstr,"fe");
+	  if (spec[i].or[j].insclbefaft==1) sprintf(befaftstr,"b");
+	  else sprintf(befaftstr,"a");
+	  fprintf(data_file," %3.3d_SCAL_%2.2d = %s %lf %s\n",i+1,j+1,flxerrstr,
+		  spec[i].or[j].inscl,befaftstr);
+	}
+      }
+    }
     if (version>=0.67) fprintf(data_file," %3.3d_VSHT = %lf %lf %lf\n",i+1,
 			       spec[i].vshift,spec[i].vslope,spec[i].refwav);
     else if (version>=0.50) fprintf(data_file," %3.3d_VSHT = %lf\n",i+1,spec[i].vshift);

@@ -36,7 +36,8 @@
 
 int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) {
 
-  double   sfrac=0.0,sfracf=0.0,sfracr=0.0,sfracesq=0.0,sfracesqi=0.0,sfracsqesq=0.0;
+  double   wgt=0.0,swgt=0.0,sfrac=0.0,swgtf=0.0,sfracr=0.0;
+  double   sfracf=0.0,sfracesq=0.0,sfracesqi=0.0,sfracsqesq=0.0;
   double   swl=0.0,ewl=0.0,rdswl=0.0,rdewl=0.0,lwl=0.0,rwl=0.0;
   double   fr=0.0,sfr=0.0,efr=0.0;
   double   *dat=NULL,*err=NULL,*res=NULL,*frac=NULL; /* Data arrays for averaging */
@@ -122,12 +123,26 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
       if ((spec->or[l].rder=darray(array_size))==NULL) { NFERR_ARRAY; }
       sprintf(array_name,"redispersed expected fluctuation");
       if ((spec->or[l].rdef=darray(array_size))==NULL) { NFERR_ARRAY; }
+      /* "Alternative" arrays are for pre-v0.74 backwards compatibility */
+      if (par->version<0.74) {
+	sprintf(array_name,"alt. redispersed flux");
+	if ((spec->or[l].rdfl_a=darray(array_size))==NULL) { NFERR_ARRAY; }
+	sprintf(array_name,"alt. redispersed error");
+	if ((spec->or[l].rder_a=darray(array_size))==NULL) { NFERR_ARRAY; }
+	sprintf(array_name,"alt. redispersed expected fluctuation");
+	if ((spec->or[l].rdef_a=darray(array_size))==NULL) { NFERR_ARRAY; }
+      }
       sprintf(array_name,"redispersed continuum");
       if ((spec->or[l].rdco=darray(array_size))==NULL) { NFERR_ARRAY; }
       sprintf(array_name,"old redispersed continuum");
       if ((spec->or[l].ordco=darray(array_size))==NULL) { NFERR_ARRAY; }
       sprintf(array_name,"redispersed median");
       if ((spec->or[l].rdme=darray(array_size))==NULL) { NFERR_ARRAY; }
+      /* "Alternative" arrays are for pre-v0.74 backwards compatibility */
+      if (par->version<0.74) {
+	sprintf(array_name,"alt. redispersed median");
+	if ((spec->or[l].rdme_a=darray(array_size))==NULL) { NFERR_ARRAY; }
+      }
       sprintf(array_name,"redispersed resolution");
       if ((spec->or[l].rdres=darray(array_size))==NULL) { NFERR_ARRAY; }
       if (par->thar==1) {
@@ -238,25 +253,23 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
 	}
 
 	/* Compute statistics for object flux and error */
-	sfrac=sfracf=sfracesq=sfracsqesq=sfracr=0.0;
+	sfrac=swgt=swgtf=sfracr=0.0;
 	if (!ndat) {
 	  if (!ncdat) {
 	    spec->or[l].rdfl[i]=0.0;
 	    spec->or[l].rder[i]=spec->or[l].rdef[i]=spec->or[l].rdres[i]=-INFIN;
 	  } else {
 	    for (k=0; k<ncdat; k++) {
-	      sfrac+=cfrac[k]; sfracf+=cfrac[k]*cdat[k];
-	      sfracesq+=(sfracesqi=cfrac[k]*cerr[k]*cerr[k]);
-	      sfracsqesq+=cfrac[k]*sfracesqi;
+	      sfrac+=cfrac[k]; swgt+=(wgt=cfrac[k]/cerr[k]/cerr[k]);
+	      swgtf+=wgt*cdat[k];
 	      if (spec->ftype==FTUVES && spec->fvers==1) sfracr+=cfrac[k]*cres[k];
 	    }
-	    spec->or[l].rdfl[i]=sfracf/sfrac;
-	    spec->or[l].rder[i]=sqrt(sfracesq/sfrac);
-	    spec->or[l].rdef[i]=sqrt(sfracsqesq)/sfrac;
-	    if (spec->ftype==FTUVES && spec->fvers==1)
-	      spec->or[l].rdres[i]=sfracr/sfrac;
-	    else spec->or[l].rdres[i]=-INFIN;
+	    spec->or[l].rdfl[i]=swgtf/swgt; spec->or[l].rder[i]=sqrt(1.0/swgt);
+	    spec->or[l].rdef[i]=sqrt(sfrac/swgt);
 	  }
+	  if (spec->ftype==FTUVES && spec->fvers==1)
+	    spec->or[l].rdres[i]=sfracr/sfrac;
+	  else spec->or[l].rdres[i]=-INFIN;
 	  spec->or[l].rdst[i]=cst;
 	  if (spec->or[l].rdst[i]!=RCLIP && spec->or[l].rdst[i]!=OCLIP &&
 	      spec->or[l].rdst[i]!=ACLIP)
@@ -265,16 +278,46 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
 \tShould be either %d, %d or %d",spec->or[l].rdst[i],i+1,l+1,RCLIP,OCLIP,ACLIP);
 	} else {
 	  for (k=0; k<ndat; k++) {
-	    sfrac+=frac[k]; sfracf+=frac[k]*dat[k];
-	    sfracesq+=(sfracesqi=frac[k]*err[k]*err[k]);
-	    sfracsqesq+=frac[k]*sfracesqi;
+	    sfrac+=frac[k]; swgt+=(wgt=frac[k]/err[k]/err[k]); swgtf+=wgt*dat[k];
 	    if (spec->ftype==FTUVES && spec->fvers==1) sfracr+=frac[k]*res[k];
 	  }
-	  spec->or[l].rdfl[i]=sfracf/sfrac;
-	  spec->or[l].rder[i]=sqrt(sfracesq/sfrac);
-	  spec->or[l].rdef[i]=sqrt(sfracsqesq)/sfrac; spec->or[l].rdst[i]=1;
+	  spec->or[l].rdfl[i]=swgtf/swgt; spec->or[l].rder[i]=sqrt(1.0/swgt);
+	  spec->or[l].rdef[i]=sqrt(sfrac/swgt); spec->or[l].rdst[i]=1;
 	  if (spec->ftype==FTUVES && spec->fvers==1) spec->or[l].rdres[i]=sfracr/sfrac;
 	  else spec->or[l].rdres[i]=-INFIN;
+	}
+
+	/* Compute statistics for alternative object flux and error
+	   for pre-0.74 backwards compatibility */
+	if (par->version<0.74) {
+	  spec->or[l].rdfl_a[i]=spec->or[l].rdfl[i];
+	  spec->or[l].rder_a[i]=spec->or[l].rder[i];
+	  spec->or[l].rdef_a[i]=spec->or[l].rdef[i];
+	  sfrac=sfracf=sfracesq=sfracsqesq=0.0;
+	  if (!ndat) {
+	    if (!ncdat) {
+	      spec->or[l].rdfl[i]=0.0;
+	      spec->or[l].rder[i]=spec->or[l].rdef[i]=-INFIN;
+	    } else {
+	      for (k=0; k<ncdat; k++) {
+		sfrac+=cfrac[k]; sfracf+=cfrac[k]*cdat[k];
+		sfracesq+=(sfracesqi=cfrac[k]*cerr[k]*cerr[k]);
+		sfracsqesq+=cfrac[k]*sfracesqi;
+	      }
+	      spec->or[l].rdfl[i]=sfracf/sfrac;
+	      spec->or[l].rder[i]=sqrt(sfracesq/sfrac);
+	      spec->or[l].rdef[i]=sqrt(sfracsqesq)/sfrac;
+	    }
+	  } else {
+	    for (k=0; k<ndat; k++) {
+	      sfrac+=frac[k]; sfracf+=frac[k]*dat[k];
+	      sfracesq+=(sfracesqi=frac[k]*err[k]*err[k]);
+	      sfracsqesq+=frac[k]*sfracesqi;
+	    }
+	    spec->or[l].rdfl[i]=sfracf/sfrac;
+	    spec->or[l].rder[i]=sqrt(sfracesq/sfrac);
+	    spec->or[l].rdef[i]=sqrt(sfracsqesq)/sfrac;
+	  }
 	}
 
 	/* Compute statistics for ThAr flux and error */
@@ -285,11 +328,10 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
 	      spec->or[l].rdth[i]=0.0; spec->or[l].rdter[i]=-INFIN;
 	    } else {
 	      for (k=0; k<nctdat; k++) {
-		sfrac+=ctfrac[k]; sfracf+=ctfrac[k]*ctdat[k];
-		sfracesq+=ctfrac[k]*cterr[k]*cterr[k];
+		sfrac+=ctfrac[k]; swgt+=(wgt=ctfrac[k]/cterr[k]/cterr[k]);
+		swgtf+=wgt*ctdat[k];
 	      }
-	      spec->or[l].rdth[i]=sfracf/sfrac;
-	      spec->or[l].rdter[i]=sqrt(sfracesq/sfrac);
+	      spec->or[l].rdth[i]=swgtf/swgt; spec->or[l].rdter[i]=sqrt(1.0/swgt);
 	    }
 	    spec->or[l].rdtst[i]=ctst;
 	    if (spec->or[l].rdtst[i]!=RCLIP && spec->or[l].rdtst[i]!=OCLIP &&
@@ -299,11 +341,12 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
 \tShould be either %d, %d or %d",spec->or[l].rdtst[i],i+1,l+1,RCLIP,OCLIP,ACLIP);
 	  } else {
 	    for (k=0; k<ntdat; k++) {
-	      sfrac+=tfrac[k]; sfracf+=tfrac[k]*tdat[k];
-	      sfracesq+=tfrac[k]*terr[k]*terr[k];
+	      sfrac+=tfrac[k]; swgt+=(wgt=tfrac[k]/terr[k]/terr[k]);
+	      swgtf+=wgt*tdat[k];
 	    }
-	    spec->or[l].rdth[i]=sfracf/sfrac;
-	    spec->or[l].rdter[i]=sqrt(sfracesq/sfrac); spec->or[l].rdtst[i]=1;
+	    spec->or[l].rdth[i]=swgtf/swgt;
+	    spec->or[l].rdter[i]=sqrt(1.0/swgt);
+	    spec->or[l].rdtst[i]=1;
 	  }
 	}
       }
@@ -456,20 +499,19 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
 	    }
 	  }
 	  /* Compute statistics for object flux and error */
-	  sfrac=sfracf=sfracesq=sfracsqesq=sfracr=0.0;
+	  sfrac=swgt=swgtf=0.0;
 	  if (!ndat) {
 	    if (!ncdat) {
 	      spec->ss.or[l].rdfl[i]=0.0;
 	      spec->ss.or[l].rder[i]=spec->ss.or[l].rdef[i]=-INFIN;
 	    } else {
 	      for (k=0; k<ncdat; k++) {
-		sfrac+=cfrac[k]; sfracf+=cfrac[k]*cdat[k];
-		sfracesq+=(sfracesqi=cfrac[k]*cerr[k]*cerr[k]);
-		sfracsqesq+=cfrac[k]*sfracesqi;
+		sfrac+=cfrac[k]; swgt+=(wgt=cfrac[k]/cerr[k]/cerr[k]);
+		swgtf+=wgt*cdat[k];
 	      }
-	      spec->ss.or[l].rdfl[i]=sfracf/sfrac;
-	      spec->ss.or[l].rder[i]=sqrt(sfracesq/sfrac);
-	      spec->ss.or[l].rdef[i]=sqrt(sfracsqesq)/sfrac;
+	      spec->ss.or[l].rdfl[i]=swgtf/swgt;
+	      spec->ss.or[l].rder[i]=sqrt(1.0/swgt);
+	      spec->ss.or[l].rdef[i]=sqrt(sfrac/swgt);
 	    }
 	    spec->ss.or[l].rdst[i]=cst;
 	    if (spec->ss.or[l].rdst[i]!=RCLIP && spec->ss.or[l].rdst[i]!=OCLIP &&
@@ -479,13 +521,11 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
 \tShould be either %d, %d or %d",spec->ss.or[l].rdst[i],i+1,l+1,RCLIP,OCLIP,ACLIP);
 	  } else {
 	    for (k=0; k<ndat; k++) {
-	      sfrac+=frac[k]; sfracf+=frac[k]*dat[k];
-	      sfracesq+=(sfracesqi=frac[k]*err[k]*err[k]);
-	      sfracsqesq+=frac[k]*sfracesqi;
+	      sfrac+=frac[k]; swgt+=(wgt=frac[k]/err[k]/err[k]); swgtf+=wgt*dat[k];
 	    }
-	    spec->ss.or[l].rdfl[i]=sfracf/sfrac;
-	    spec->ss.or[l].rder[i]=sqrt(sfracesq/sfrac);
-	    spec->ss.or[l].rdef[i]=sqrt(sfracsqesq)/sfrac; spec->ss.or[l].rdst[i]=1;
+	    spec->ss.or[l].rdfl[i]=swgtf/swgt;
+	    spec->ss.or[l].rder[i]=sqrt(1.0/swgt);
+	    spec->ss.or[l].rdef[i]=sqrt(sfrac/swgt); spec->ss.or[l].rdst[i]=1;
 	  }
 	}
 	/* Clean up temporary arrays */

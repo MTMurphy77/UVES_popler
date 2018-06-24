@@ -17,8 +17,8 @@
 #define ISWAP(a,b)    itmp=(a);(a)=(b);(b)=itmp
 
 /* Version number, date created and UVES_popler website */
-#define VERSION       0.72    /* Version number */
-#define DATECREATE    "21 June 2016"
+#define VERSION       1.00    /* Version number */
+#define DATECREATE    "30 April 2017"
 #define WWW           "www.astronomy.swin.edu.au/~mmurphy/UVES_popler.html"
 
 /* General (non-option) Parameters */
@@ -28,12 +28,12 @@
 #define UTTOL         4.0     /* Tol. for UT diffs in header vals [min]      */
 #define WLTOL         1.e-10  /* Tol. for wavelength scale linearity         */
 #define LYA        1215.67    /* Lyman-alpha wavelength [A]                  */
-// #define NWPOL         8       /* Number of wavelength polynomial coefficients*/
 #define NWPOL        12       /* Number of wavelength polynomial coefficients*/
 #define NINTP         4       /* Num.pnts.poly.interp. 4 invert.wavelen.poly.*/
                               /*    MUST BE >1 AND <=NWPOL                   */
-#define TABNCOL      24       /* Number of binary table cols in output object*/
-                              /*    FITS file                                */ 
+#define TNCOLCOM       7      /* Num. cols in comb. spec. info. output table */ 
+#define TNCOLWCO       2      /* Num. cols in wav. coverage info. output tab.*/ 
+#define TNCOLEXP      55      /* Num. cols in exposure info. output table    */ 
 #define UVESBORR    500.0     /* Cross-over wave. (nm) for blue/red settings */
 #define UVESPIXSCALB  0.215   /* Central order pixel scale of blue UVES arm  */
 #define UVESPIXSCALR  0.155   /* Central order pixel scale of red UVES arm   */
@@ -41,6 +41,12 @@
                               /*    spectral pix                             */
 #define HARPNNSPATPIX 4.0     /* Eff. # spatial pix per HARPS-N extracted    */
                               /*    spectral pix                             */
+#define WAVGRIDSIZE 1000.0    /* Size of coarse wavelength grid for measuring*/
+                              /*    statistics on combined spectrum [km/s]   */
+#define WAVGRIDSTART 3000.0   /* Starting wavelength of coarse grid [A]      */
+#define WAVGRIDEND  11000.0   /* Ending wavelength of coarse grid [A]        */
+#define WAVCOVMINREG 100.0    /* Min. size of chunk of wav. cov. map         */
+#define WAVCOVMAXGAP  10.0    /* Max. gap size within chunk in wav. cov. map */
 
 /* Command line options */
  /* General spectrum specifications */
@@ -107,6 +113,9 @@
 #define VSHIFT        0       /* Apply velocity shifts from a to spectra     */
 #define VSHIFTFILE "UVES_popler.vshift"
                               /* Default name for velocity shift file        */
+#define SCALE         0       /* Apply flux/error scaling to spectra         */
+#define SCALEFILE "UVES_popler.scale"
+                              /* Default name for scalings file              */
 #define ATMASK        0       /* Apply mask to atmospheric features          */
 #define ATMASKFILE "UVES_popler.atmomask"
                               /* Default name for atmo. mask file            */
@@ -149,6 +158,7 @@
 #define SOACT         9      /* Scale order flux                             */
 #define ARACT        10      /* Autorescale orders after user has scaled some*/
 #define NCACT        11      /* Create new continuum                         */
+#define AAACT        12      /* Switch alternative arrays to main arrays     */
 
 /* Filetype labelling */
 #define FTMIX        -1      /* A mix of different filetypes is to be used   */
@@ -255,6 +265,7 @@ typedef struct Params {
   int       raw;                  /* Option for writing out raw order data   */
   int       rankspec;             /* Switch between scaling order choice     */
   int       save;                 /* Force UPL and FITS to save upon quitting*/
+  int       scale;                /* Switch to read in flux/error scale file */
   int       scalmeth;             /* Switch to use full chisq. min. scaling  */
   int       thar;                 /* Allow combination of ThAr cal. exps.    */
   int       replay;               /* Replay mode?                            */
@@ -264,12 +275,14 @@ typedef struct Params {
   char      atmaskfile[NAMELEN];  /* Name of atmospheric feature mask file   */
   char      prefix[NAMELEN];      /* Prefix for output file names            */
   char      macmapfile[NAMELEN];  /* Name of Macmap file                     */
+  char      scalefile[NAMELEN];   /* Name of flux/error scaling file         */
   char      vshiftfile[NAMELEN];  /* Name of velocity shift file             */
 } params;
 
 typedef struct EchOrder {
   double   fvhlwl;                /* Left edge of first pixel in vac-helio   */
   double   medsnr;                /* Median S/N of valid, redispersed pixels */
+  double   inscl;                 /* Input scaling factor from input file    */
   double   scl;                   /* Scaling factor applied to order         */
   double   oscl;                  /* Old scaling factor before last action   */
   double   seeing;                /* FWHM of spatial prof. in object extractn*/
@@ -293,8 +306,16 @@ typedef struct EchOrder {
   double   *rdth;                 /* Pointer to redispersed ThAr flux array  */
   double   *rdter;                /* Pointer to redispersed ThAr error array */
   double   *rdfwhm;               /* Pointer to redisp. resol. (FWHM) array  */
+                                  /** Arrays for pre-v0.74 backwards compat **/
+  double   *rdfl_a;               /* Alternative redispersed flux array      */
+  double   *rder_a;               /* Alternative redispersed error array     */
+  double   *rdef_a;               /* Alternative redisp. expected fluc. array*/
+  double   *rdme_a;               /* Alternative redispersed median error arr*/
   int      id;                    /* Identity number for this order          */
   int      sid;                   /* ID of spec. to which this order belongs */
+  int      insclbefaft;           /* Input scaling: 0=none, 1=before, 2=after*/
+                                  /*    automatic and manual actions         */
+  int      insclfe;               /* Input scaling: 0=flux, 1=error, 2=both  */
   int      ascl;                  /* Flag whether order was auto-rescaled    */
   int      idxoff;                /* Offset in pixel index when reading FITS */
                                   /*    files (=CRVAL1 value, usuaully)      */
@@ -337,11 +358,11 @@ typedef struct ThArSpec {
 } tharspec;
 
 typedef struct ThArSet {
-  double   sw;                    /* Slit-width in arcsec                    */
   double   *x;                    /* Fitted pixel position                   */
-  double   *w;                    /* Fitted FWHM width of line [A]           */
+  double   *w;                    /* Fitted FWHM width of line [pix]         */
   double   *dis;                  /* Dispersion [A/pix]                      */
   double   *wlf;                  /* Wavelength from fit [A]                 */
+  double   *resid;                /* Residual between fit and lab wavelen [A]*/
   double   *wlsf;                 /* FWHM of line-spread function            */
   int      binx;                  /* CCD Binning in spectral direction       */
   int      n;                     /* Number of lines in set                  */
@@ -356,12 +377,8 @@ typedef struct Spectrum {
   double   sw;                    /* Slit-width in arcsec                    */
   double   temp;                  /* Temperature at echelle grating          */
   double   pres;                  /* Pressure inside spectrograph            */
-  double   thtemp;                /* Temperature at echelle grating for ThAr */
-  double   thpres;                /* Pressure inside spectrograph for ThAr   */
-  double   thjd;                  /* Julian day for start of ThAr exposure   */
   double   pixscal;               /* Pixel scale in spatial direction ["/pix]*/
-  double   arcfwhm;               /* Median FWHM of ThAr arc lines [pix]     */
-  double   etime;                 /* Exposure time                           */
+  double   etime;                 /* Exposure time [s]                       */
   double   ra;                    /* Right ascension of object [hrs]         */
   double   dec;                   /* Declination of object [deg]             */
   double   epoch;                 /* Epoch of observation start              */
@@ -369,10 +386,27 @@ typedef struct Spectrum {
   double   lat;                   /* Latitude of Observatory [+=North, deg]  */
   double   lon;                   /* Longitude of Observatory [+=West, deg]  */
   double   alt;                   /* Altitude of Observatory (meters)        */
-  double   vhel;                  /* Heliocentric velocity at middle of exp. */
+  double   vhel;                  /* Heliocen. vel. at middle of exp. (calc) */
+  double   vhel_head;             /* Heliocen. vel. from header              */
+  double   vbar_head;             /* Barycen. vel. from header               */
   double   vshift;                /* Velocity shift applied by user [km/s].  */
   double   vslope;                /* Velocity slope " [km/s/1000Ang].        */
-  double   refwav;                /* Ref. wav. for vel. slope [Ang].        */
+  double   refwav;                /* Ref. wav. for vel. slope [Ang].         */
+  double   airmass[2];            /* Airmass at start [0] and end [1] of exp.*/  
+  double   seeing[3];             /* Seeing [arcsec]: [0]=start(header),[1]= */
+                                  /* end(header),[3]=med. extracted          */  
+  double   moon_ra;               /* RA of Moon [hrs]                        */
+  double   moon_dec;              /* Dec. of Moon [deg]                      */
+  double   moon_ang;              /* Angle between object and Moon           */
+  double   moon_phase;            /* Moon phase as fraction of period        */
+  double   arcfwhm;               /* Median FWHM of ThAr arc lines [km/s]    */
+  double   wc_resid;              /* Median residual wavelen. solution [m/s] */
+  double   wc_jd;                 /* Wavcal Julian day, start of exp. [days] */
+  double   wc_ut;                 /* Wavcal UT start of exposure [days]      */
+  double   wc_etime;              /* Wavcal exposure time [s]                */
+  double   wc_sw;                 /* Wavcal slit-width in arcsec             */
+  double   wc_temp;               /* Temperature at echelle grating for ThAr */
+  double   wc_pres;               /* Pressure inside spectrograph for ThAr   */
   int      id;                    /* Identity number for this spectrum       */
   int      comb;                  /* Is this spectrum to be combined?        */
   int      ftype;                 /* File type: UVES=0, IRAF=1, MAKEE=2,     */
@@ -388,20 +422,35 @@ typedef struct Spectrum {
   int      nhead_ori;             /* Num. keys in main header of flux file   */
   int      skysub;                /* Flag to indicate need for separate sky- */
                                   /*   subtraction (=1).                     */
+  int      obid;                  /* Observation block ID (for UVES files)   */
+  int      encoder;               /* Grating encoder value                   */
+  int      wc_year;               /* Wavcal year of obs. start (from mjd)    */
+  int      wc_month;              /* Wavcal month of obs. start (from mjd)   */
+  int      wc_day;                /* Wavcal day of obs. start (from mjd)     */
+  int      wc_encoder;            /* Grating encoder value for wavcal exp.   */
   long     distort_seed;          /* Random number seed for wavelength       */
                                   /*   distortions                           */
   char     path[LNGSTRLEN];       /* Full path of flux and error file        */
   char     file[LNGSTRLEN];       /* Name of flux file                       */
   char     abfile[LNGSTRLEN];     /* Name of flux file without full path     */
   char     erfile[LNGSTRLEN];     /* Name of error array file                */
-  char     aberfile[LNGSTRLEN];   /* Name of error file without fill path    */
+  char     aberfile[LNGSTRLEN];   /* Name of error file without full path    */
   char     thfile[LNGSTRLEN];     /* Name of ThAr file                       */
-  char     abthfile[LNGSTRLEN];   /* Name of ThAr file without fill path     */
+  char     abthfile[LNGSTRLEN];   /* Name of ThAr file without full path     */
   char     wlfile[LNGSTRLEN];     /* Name of wavelength solution array file  */
-  char     abwlfile[LNGSTRLEN];   /* Name of wavelen. file without fill path */
+  char     abwlfile[LNGSTRLEN];   /* Name of wavelen. file without full path */
   char     arfile[LNGSTRLEN];     /* Name of archived file                   */
+  char     wlarfile[LNGSTRLEN];   /* Name of wavelength sol. archived file   */
   char     tharfile[LNGSTRLEN];   /* Name of ThAr archived file              */
   char     obj[NAMELEN];          /* Object name                             */
+  char     progid[NAMELEN];       /* Program ID                              */
+  char     dprtech[NAMELEN];      /* DPR.TECH                                */
+  char     dprtype[NAMELEN];      /* DPR.TYPE                                */
+  char     dprcatg[NAMELEN];      /* DPR.CATG                                */
+  char     inspath[NAMELEN];      /* Instrument light path used              */
+  char     insmode[NAMELEN];      /* Instrument mode used (e.g. dichr#2)     */
+  char     insdrot[NAMELEN];      /* Instrument derotator mode used          */
+  char     inscl[VHUGESTRLEN];    /* Flux/error scaling string for all orders*/
   char     **head_ori;            /* Original flux file main header          */
   skyspec  ss;                    /* Sky spectrum                            */
   tharspec th;                    /* Order-merged 1D ThAr spectrum           */
@@ -413,6 +462,7 @@ typedef struct CSpectrum {
   double   dv;                    /* Dispersion in velocity space            */
   double   dwl;                   /* Dispersion in wavelength space          */
   double   flwl;                  /* First left edge vac-helio wavelen       */
+  double   texp;                  /* Total exposure time                     */
   double   *wl;                   /* Pointer to vac-helio wavelength array   */
   double   *rwl;                  /* Pointer to right edge vac-helio array   */
   double   *fl;                   /* Pointer to flux array                   */
@@ -427,7 +477,18 @@ typedef struct CSpectrum {
   double   *no;                   /* Pointer to normalized flux array        */
   double   *ne;                   /* Pointer to normalized error array       */
   double   *nf;                   /* Pointer to normalized fluctuation array */
+  double   *cwav;                 /* Coarse wavelength array (for stats)     */
+  double   *csnrmax;              /* Coarse maxium SNR array (for stats)     */
+  double   *csnrmed;              /* Coarse median SNR array (for stats)     */
+  double   *ccnrmax;              /* Coarse maxium CNR array (for stats)     */
+  double   *ccnrmed;              /* Coarse median CNR array (for stats)     */
+  double   *cresnom;              /* Coarse nominal resolution array (for sta*/
+  double   *cresarc;              /* Coarse arc resolution array (for stats) */
+  double   **wavcov;              /* Wavelength coverage map                 */
   int      np;                    /* Number of pixels in arrays              */
+  int      nc;                    /* Number of chunks in coarse stats arrays */
+  int      nwavcov;               /* Number of regions in wav. cov. matrix   */
+  int      nexp;                  /* Number of exposures (not files)         */
   int      *ncb;                  /* Array of no. of contribut. pxls to comb.*/
   int      *nccb;                 /* No. contribut. pxls to comb. after clip */
   int      *st;                   /* Status of each pixel                    */
@@ -538,6 +599,26 @@ typedef struct AtMask {
   char     atmaskfile[NAMELEN];   /* Name of mask file                       */
 } atmask;
 
+/* LOOKUP TABLES */
+/* UVES nominal slit-width--resolving-power product polynomial
+   coefficients for the blue and red arms for unbinned and 2x-binned
+   settings. These numbers derived from the quality control history
+   database at
+   http://archive.eso.org/bin/qc1_cgi?action=qc1_browse_table&table=uves_wave
+   over from 2010-2016 using slit widths 0.4-1.2" for unbinned
+   exposures and 0.8-1.4" for 2x2 binned exposures of the 390 and
+   580-nm settings. A simple polynomial fit was performed to derive
+   the 2nd order polynomial coefficients. The coefficients produce the
+   resolving power, R, at a given slit width (sw) as follows:
+   R=a[0]/sw+a[1]+a[2]*sw. There was no discernable difference
+   between the redl and redu chips, so the red arm is treated as a
+   single entity (values for the redl were used). */
+static double UVES_NOM_RES[2][2][3]=
+  {{{10033.0,63237.0,-24986.0},  // No binning, blue arm: UVES_NOM_RES[0][0][]
+    {8533.3,52709.0,-16005.0}}, // No binning, red arm: UVES_NOM_RES[0][1][]
+   {{22011.0,50563.0,-22803.0},  // 2x-binned, blue arm: UVES_NOM_RES[1][0][]
+    {28846.0,28505.0,-9533.3}}}; // 2x-binned, red arm: UVES_NOM_RES[1][1][]
+
 /* FUNCTION PROTOTYPES */
 double edlen_a2v(double airwl);
 double edlen_v2a(double vacwl);
@@ -570,6 +651,7 @@ int UVES_confit(double *dat, double *err, int *sts, int ndat, int fit_typ,
 		int fit_ord, double lrejsig, double urejsig, double pctl,
 		int verb, double *fit);
 int UVES_cspec_cont(spectrum *spec, int nspec, cspectrum *cspec, params *par);
+int UVES_cspec_stats(spectrum *spec, int nspec, cspectrum *cspec, params *par);
 int UVES_join_orders(spectrum *spec);
 int UVES_hex2dec(char *hex, double *hrs);
 int UVES_hirx_blzfit(echorder *ord, double *blz, double initrej, double rejsig,
@@ -616,8 +698,10 @@ int UVES_rinputfile(char *infile, spectrum **spec, int *nspec, action **act,
 		    int *nact, cspectrum *cspec, params *par);
 int UVES_rFITSlist(char *infile, spectrum **spec, int *nspec, params *par);
 int UVES_rMacmap(macmap *mmap);
+int UVES_rscale(spectrum **spec, int nspec, cspectrum *cspec, params *par);
 int UVES_rUPLfile(char *infile, spectrum **spec, int *nspec, action **act,
 		  int *nact, cspectrum *cspec, params *par);
+int UVES_scale(spectrum *spec, int opt);
 int UVES_select_subspec(spectrum *spec, int nspec, float wwidth, float wasp,
 			params *par);
 int UVES_set_wavelen_scale(spectrum *spec, int nspec, cspectrum *cspec,

@@ -96,10 +96,15 @@ Mode options:\n\
  -macmap [FILE]           : Read file to map pipeline product path and file names\n\
                              between case-sensitive and case-insensitive operating\n\
                              systems, e.g. Mac and linux.\n\
- -vshift [FILE]           : Read file to apply a velocity shift(+distortion) shift\n\
-                             to each spectrum. File specifies 4 cols: file path,\n\
+ -vshift [FILE]           : Read file to apply a velocity shift(+distortion) to\n\
+                             each spectrum. File specifies 4 cols: file path,\n\
                              velocity shift [km/s], slope [km/s/1000Ang], reference\n\
                              wavelength [Ang].\n\
+ -scale [FILE]           : Read file to apply scaling [scale] to flux [f] and/or\n\
+                             error [e] of a spectrum [oall], individual orders\n\
+                             [o# or o#-#], either before or after [b|a] combination\n\
+                             and existing actions. 5 columns:\n\
+                             filepath [o#|o#-#|oall] [fe] [scale] [b|a]\n\
  -atmomask [FILE]         : Read file to mask spectra for atmospheric/telluric\n\
                              features. File should have format: wav. start, wav. end\n\
                              [Ang.], residual intensity, wav. center [Ang.].\n\
@@ -127,7 +132,7 @@ int main(int argc, char *argv[]) {
   
   int       nspec=0;     /* Number of 2D spectra read in from PWD */
   int       nact=0;      /* Number of historical actions */
-  int       nact_save=0,cact=0,status=0;
+  int       nact_save=0,cact=0,v074switch=0,allUVES=1,status=0;
   int       i=0,j=0;
   char      infile[LNGSTRLEN]="\0";
   char      query[QUERYLEN]="\0";
@@ -286,6 +291,10 @@ int main(int argc, char *argv[]) {
       par.atmask=1; if (++i==argc || !strncmp(argv[i],"-",1)) usage();
       if (sscanf(argv[i],"%s",par.atmaskfile)!=1) usage();
     }
+    else if (!strcmp(argv[i],"-scale")) {
+      par.scale=1; if (++i==argc || !strncmp(argv[i],"-",1)) usage();
+      if (sscanf(argv[i],"%s",par.scalefile)!=1) usage();
+    }
     else if (!strcmp(argv[i],"-distort")) par.distort=1;
     else if (!access(argv[i],R_OK)) {
       if (strlen(argv[i])<=LNGSTRLEN) strcpy(infile,argv[i]);
@@ -299,13 +308,13 @@ int main(int argc, char *argv[]) {
 
   /* Read input file */
   if (!UVES_rinputfile(infile,&spec,&nspec,&act,&nact,&cspec,&par))
-    errormsg("Unknown error returned from UVES_rinputfile()");
+    errormsg("Error returned from UVES_rinputfile()");
 
   /* Set any unset reduction parameters */
   if (!UVES_params_set(&par))
     errormsg("Unknown error returned from UVES_params_set()");
   /* Make sure nordsig is odd */
-  if (!isodd(par.nordsig)) errormsg("Nordsig (=%d) must be odd",par.nordsig);
+  if (!isodd(par.nordsig)) errormsg("nordsig (=%d) must be odd",par.nordsig);
   /* Make sure nordsig and nordclip are consistent */
   if (par.nordsig<par.nordclip+2)
     errormsg("nordsig (=%d) must be at least 2 greater\n\
@@ -322,6 +331,12 @@ int main(int argc, char *argv[]) {
   if (par.vshift==1) {
     if (!UVES_rvshift(&spec,nspec,&par))
       errormsg("Error reading velocity shift file %s",par.vshiftfile);
+  }
+
+  /* Read flux/error scaling file provided by the user */
+  if (par.scale==1) {
+    if (!UVES_rscale(&spec,nspec,&cspec,&par))
+      errormsg("Error reading flux/error scaling file %s",par.scalefile);
   }
 
   /* Read the atmospheric feature mask file provided by the user */
@@ -427,6 +442,16 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  /* Initialise flux/error scaling information for each order in each
+     spectrum and apply any pre-combination scalings specified in the
+     UPL or flux/error scaling file */
+  for (i=0; i<nspec; i++) {
+    if (!UVES_scale(&(spec[i]),0))
+      errormsg("Error returned from UVES_scale() when attempting to\n\
+\toperate on spectrum %d,\n\t%s\n\tprior to combining spectra",
+	       i+1,spec[i].file);
+  }
+
   /* Median filter the raw error arrays and reject pixels near order
      edges which have grossly underestimated errors */
   if (par.thar<=1) {
@@ -434,8 +459,8 @@ int main(int argc, char *argv[]) {
       for (j=0; j<spec[i].nor; j++) {
 	if (!UVES_order_rejsigedge(&(spec[i].or[j]),&par))
 	  errormsg("Error returned from UVES_order_rejsigedge() when\n\
-\trejecting bad sigmas from edges of order %d of spectrum %d,\n\ti.e. file\n\t%s",j+1,
-		   i+1,spec[i].file);
+\trejecting bad sigmas from edges of order %d of spectrum %d, i.e. file\n\
+\t%s",j+1,i+1,spec[i].file);
       }
     }
   }
@@ -447,7 +472,7 @@ int main(int argc, char *argv[]) {
       for (j=0; j<spec[i].nor; j++) {
 	if (!UVES_order_sigclip(&(spec[i].or[j]),&par))
 	  errormsg("Error returned from UVES_order_sigclip() when\n\
-\tsigma-clipping order %d of spectrum %d,\n\ti.e. file\n\t%s",j+1,i+1,spec[i].file);
+\tsigma-clipping order %d of spectrum %d, i.e. file\n\t%s",j+1,i+1,spec[i].file);
       }
     }
   }
@@ -478,7 +503,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  /* Replace ThAr information with synthetic emission line spectrum in
+  /* TEMPORARY: Replace ThAr information with synthetic emission line spectrum in
      each un-redispersed order */
   /*
   if (par.thar) {
@@ -564,7 +589,7 @@ int main(int argc, char *argv[]) {
     /* Make a unified continuum for the combined spectrum */
     if (!UVES_combine_cont(spec,nspec,&cspec,0,&par))
       errormsg("Unknown error returned from UVES_combine_cont()");
-    /* Combined all orders and spectra together */
+    /* Combine all orders and spectra together */
     if (!UVES_combine_spec(spec,nspec,&cspec,&par))
       errormsg("Problem combining spectra in UVES_combine_spec()");
   }
@@ -573,6 +598,36 @@ int main(int argc, char *argv[]) {
   if (nact && !par.replay) {
     if (!UVES_past_actions(spec,nspec,&cspec,act,nact,0,&par))
       errormsg("Unknown error returned from UVES_past_actions()");
+    /* If UPL version is <0.74 and no action has specified switching the
+       alternative arrays to the main arrays, then do that here,
+       recombine the spectra and add a new action */
+    if (par.version<0.74) {
+      for (i=0; i<nspec; i++) {
+	for (j=0; j<spec[i].nor; j++) {
+	  if (spec[i].or[j].nuse>=MINUSE && spec[i].or[j].rdfl_a!=NULL) {
+	    v074switch=1;
+	    free(spec[i].or[j].rdfl); spec[i].or[j].rdfl=spec[i].or[j].rdfl_a;
+	    spec[i].or[j].rdfl_a=NULL;
+	    free(spec[i].or[j].rder); spec[i].or[j].rder=spec[i].or[j].rder_a;
+	    spec[i].or[j].rder_a=NULL;
+	    free(spec[i].or[j].rdef); spec[i].or[j].rdef=spec[i].or[j].rdef_a;
+	    spec[i].or[j].rdef_a=NULL;
+	    free(spec[i].or[j].rdme); spec[i].or[j].rdme=spec[i].or[j].rdme_a;
+	    spec[i].or[j].rdme_a=NULL;
+	  }
+	}
+      }
+      if (v074switch) {
+	v074switch=0;
+	if (!UVES_combine_spec(spec,nspec,&cspec,&par))
+	  errormsg("Problem combining spectra in UVES_combine_spec() after\n\
+\tswitching from pre-version-0.74 arrays");
+	if (!(act=(action *)realloc(act,(size_t)((nact+1)*sizeof(action)))))
+	  errormsg("Cannot increase memory for act array to size %d",nact+1);
+	act[nact].act=AAACT; act[nact].rcmb=act[nact].val=act[nact].nordact=1;
+	nact++;
+      }
+    }
   }
   nact_save=nact;
 
@@ -587,7 +642,8 @@ int main(int argc, char *argv[]) {
   }
   */
 
-  /* Skip display if user only wants to save UPL and FITS output */
+  /* Start the display unless the user wants to skip this part and
+     just save UPL and FITS output */
   if (par.save!=2) {
     /* Initialize plotting */
     UVES_pgenv_init(&plenv,&cp);
@@ -602,6 +658,14 @@ int main(int argc, char *argv[]) {
 	  errormsg("Problem controlling interactive action replay");
 	if (rp.exit==1) par.replay=0;
       }
+      /* Post-combination, post-existing-actions flux/error scalings specified in file
+	 provided by the user */
+      for (i=0; i<nspec; i++) {
+	if (!UVES_scale(&(spec[i]),1))
+	  errormsg("Error returned from UVES_scale() when attempting to\n\
+\toperate on spectrum %d,\n\t%s\n\tafter combining spectra",i+1,spec[i].file);
+      }
+      /* Start the interactive plotting and manual action phase */
       if (!UVES_plot_cspec(spec,nspec,&cspec,&cp,&rp,&act,&nact,&nact_save,&par))
 	errormsg("Problem plotting combined spectrum");
       if (cp.refre) cp.refre=cp.exit=0;
@@ -642,6 +706,14 @@ int main(int argc, char *argv[]) {
   
     /* Close plotting */
     cpgclos();
+  }
+
+  /* Calculate statistics of combined spectrum for saving to final FITS file */
+  /* Note: At present, this is only done for UVES spectra */
+  for (i=0; i<nspec; i++) if (spec[i].ftype!=FTUVES) { allUVES=0; break; }
+  if (allUVES) {
+    if (!UVES_cspec_stats(spec,nspec,&cspec,&par))
+      warnmsg("Error returned from UVES_cspec_stats()");
   }
 
   /* Write out log file to record file list and all historical actions made */

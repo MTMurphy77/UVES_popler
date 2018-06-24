@@ -272,15 +272,15 @@ int UVES_r2Dspec_irls(spectrum *spec, params *par) {
     sprintf(spec->tharfile,"%s",spec->abthfile);
 
     /* Get modified julian day */
-    if (fits_read_key(infits,TDOUBLE,"MJD-OBS",&(spec->thjd),comment,&status))
+    if (fits_read_key(infits,TDOUBLE,"MJD-OBS",&(spec->wc_jd),comment,&status))
       errormsg("UVES_r2Dspec_irls(): Cannot read value of header card %s\n\
 \tfrom FITS file %s.","MJD-OBS",spec->thfile);
     /* Convert to Julian day */
-    spec->thjd+=2400000.5;
+    spec->wc_jd+=2400000.5;
 
     /* Find the temperature in each arm and the atmospheric pressure */
     /* At the moment, these values are just set to arbitrary numbers */
-    spec->thtemp=spec->thpres=-1.0;
+    spec->wc_temp=spec->wc_pres=-1.0;
 
     /* Get image dimensions */
     if (fits_get_img_param(infits,9,&bitpix,&naxis,naxes,&status))

@@ -281,9 +281,12 @@ int UVES_rFITSlist(char *infile, spectrum **spec, int *nspec, params *par) {
     }
   }
 
-  /* Initialize the user-supplied velocity shift to be applied to each
-     spectrum */
-  for (i=0; i<*nspec; i++) (*spec)[i].vshift=(*spec)[i].vslope=(*spec)[i].refwav=0.0;
+  /* Initialize the user-supplied velocity shift and scaling
+     information to be applied to each spectrum */
+  for (i=0; i<*nspec; i++) {
+    (*spec)[i].vshift=(*spec)[i].vslope=(*spec)[i].refwav=0.0;
+    strcpy((*spec)[i].inscl,"\0");
+  }
 
   /* Initialize the random number seeds for the wavelength distortions */
   ranseed=-time(NULL);

@@ -15,9 +15,11 @@ int UVES_params_init(params *par) {
   par->atmask=par->combmeth=par->contftyp=par->contord=par->contwgt=par->cordlya=-1;
   par->cordred=par->dat=par->distort=par->ftyplya=par->ftypred=par->helio=par->linear=-1;
   par->macmap=par->nocont=par->nordclip=par->nordsig=par->rankspec=par->raw=par->replay=-1;
-  par->save=par->scalmeth=par->nscalclip=par->thar=par->vacwl=par->macmap=par->backvers=-1;
+  par->save=par->scale=par->scalmeth=par->nscalclip=par->thar=par->vacwl=par->vshift=-1;
+  par->backvers=-1;
   par->filetype=-2;
   strcpy(par->prefix,"\0"); strcpy(par->macmapfile,"\0"); strcpy(par->vshiftfile,"\0");
+  strcpy(par->scalefile,"\0");
 
   return 1;
 

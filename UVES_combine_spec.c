@@ -17,6 +17,7 @@ int UVES_combine_spec(spectrum *spec, int nspec, cspectrum *cspec,
   int      ndat=0,maxndat=0,cst=0;
   int      lval=0,rval=0;
   int      i=0,j=0,l=0;
+  int      post074clip=1;
   int      *clip=NULL,**con=NULL;
   statset  stat;
 
@@ -88,6 +89,20 @@ int UVES_combine_spec(spectrum *spec, int nspec, cspectrum *cspec,
       }
     }
 
+    /* For backwards compatibility with pre-v0.74, check whether
+       memory has been freed on alternative arrays or not. We only
+       need to do sigma-clipping with error array in next block of
+       code (instead of expected fluctuation) when the alternative
+       arrays are loaded */
+    /* Find the first spectrum with a useful order */
+    if (par->version<0.74) {
+      for (i=0; i<nspec; i++) {
+	for (j=0; j<spec[i].nor; j++) {
+	  if (spec[i].or[j].nuse>MINUSE) {
+	    if (spec[i].or[j].rdfl_a!=NULL) post074clip=0;
+	    break;
+    } } } }
+
     /* Gather final pixel values after sigma-clipping */
     if (!ndat) {
       cspec->fl[l]=cspec->co[l]; cspec->no[l]=1.0;
@@ -113,14 +128,21 @@ int UVES_combine_spec(spectrum *spec, int nspec, cspectrum *cspec,
       for (i=0; i<ndat; i++) clip[i]=1;
       /* Gather initial statistics before sigma-clipping */
       if (!stats(dat,err,efl,med,clip,ndat,1,&stat))
-	errormsg("UVES_combine_nocont(): Error returned from stats()\n\
+	errormsg("UVES_combine_spec(): Error returned from stats()\n\
 \tfor pre-sigma-clip stats for combined pixel %d, wavelength %9.4lf",l+1,
 		 cspec->wl[l]);
       cspec->csq[l]=stat.rchisq; cspec->ncb[l]=ndat;
       /* Sigma-clip array (which also does statistics on clipped-filtered
 	 array) */
-      if (!sigclip(dat,err,efl,med,ndat,par->clipsig,&stat,clip))
-	errormsg("UVES_combine_nocont(): Error doing sigma-clip\n\
+      /* Pre-0.74-version used the statistical uncertainty as the
+	 "sigma" in the sigma-clipping algorithm, but this is changed
+	 to the expected fluctation in 0.74. This only needs to be
+	 done when the alternative arrays the first time and while
+	 existing actions are being performed; if their memory has
+	 been freed then just use the expected fluctuation from then
+	 on. */
+      if (!sigclip(dat,err,efl,med,ndat,par->clipsig,&stat,clip,post074clip))
+	errormsg("UVES_combine_spec(): Error doing sigma-clip\n\
 \tfor combined spectrum pixel %d, wavelength %9.4lf",l+1,cspec->wl[l]);
       /* Go through clip array and distribute info to source spectra */
       for (i=0,cspec->nccb[l]=0; i<ndat; i++) {

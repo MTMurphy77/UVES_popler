@@ -30,6 +30,15 @@ int UVES_order_cont(spectrum *spec, int nspec, params *par) {
 	    spec[i].or[j].rder[k]=-INFIN; spec[i].or[j].rdef[k]=-INFIN;
 	  }
 	}
+	/* Do the same for alternative arrays for backwards compatibility with pre-v0.74 */
+	if (par->version<0.74 && spec[i].or[j].rdfl_a!=NULL) {
+	  for (k=0; k<spec[i].or[j].nrdp; k++) {
+	    if (spec[i].or[j].rdst[k]==RCLIP) {
+	      spec[i].or[j].rdfl_a[k]=spec[i].or[j].rdco[k];
+	      spec[i].or[j].rder_a[k]=-INFIN; spec[i].or[j].rdef_a[k]=-INFIN;
+	    }
+	  }
+	}
       }
     }
   }

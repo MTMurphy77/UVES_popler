@@ -13,7 +13,7 @@
 * approximation to the expected spectral resolution as a fnuction of
 * position along each echelle order.
 * 
-* Note that the resulting resolution arrays calculated here at still
+* Note that the resulting resolution arrays calculated here are still
 * in pixel space. They should be converted to wavelength or velocity
 * space once the dispersion for each pixel is determined from the
 * wavelength solution.
@@ -63,7 +63,7 @@ int UVES_model_resol(spectrum *spec) {
 	 equivalent Gaussian FWHM of the slit-width projected to this
 	 position on the CCD */
       pixscal=UVES_pixscal(spec->cwl,spec->ts.x[i],spec->or[0].np,spec->ts.binx);
-      FWHM_SW=C_SQRT3*spec->ts.sw/pixscal/2.0;
+      FWHM_SW=C_SQRT3*spec->wc_sw/pixscal/2.0;
       spec->ts.wlsf[i]=spec->ts.w[i]*spec->ts.w[i]-FWHM_SW*FWHM_SW;
     }
   }

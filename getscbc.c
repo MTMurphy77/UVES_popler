@@ -48,7 +48,7 @@ static int io_tio_get_flag_##which(int fd, int bit, int *value) \
 
 int getscbc(char *s, int size) {
 
-  int          i, old_icanon, old_echo, status=0;
+  int          i, old_icanon, old_echo;
   static int   ihist=0, nhist=0;
   char         *buf;
   static char  hist[N_HIST][VLNGSTRLEN];
@@ -89,9 +89,9 @@ int getscbc(char *s, int size) {
 
     } else if (s[i] == '\033') {
       /* Escape sequence */
-      status=read(0, &s[i], 1);
+      read(0, &s[i], 1);
       if (s[i] == '[') {
-	status=read(0, &s[i], 1);
+	read(0, &s[i], 1);
 
 	if (s[i] == 'A') {
 	  /* History */

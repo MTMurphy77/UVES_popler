@@ -19,19 +19,15 @@
 
 FILE *faskwopen(char *query, char *filename, int opt) {
 
-  int     status=0;
   char    ans;
   
   if (opt == 1 || opt == 2 || opt == 3) {
 
-    if (opt == 1)
-      get_input(query, "!%s", filename);
-    else if (opt == 2)
-      get_input(query, "%s", filename);
+    if (opt == 1) get_input(query, "!%s", filename);
+    else if (opt == 2) get_input(query, "%s", filename);
 
     while (!access(filename,W_OK) || filename[0] == '!') {
-      if (filename[0] == '!')
-	status=system(filename+1);
+      if (filename[0] == '!') system(filename+1);
       else {
 	warnmsg("File %s exists!", filename);
 	ans = 'y';
@@ -46,10 +42,9 @@ FILE *faskwopen(char *query, char *filename, int opt) {
     ;
   else if (opt == 5 && access(filename,W_OK))
     errormsg("faskwopen(): Cannot open file %s for writing",filename);
-  else if (opt == 6)
-    return fopen(filename, "a");
-  else
-    errormsg("faskwopen(): Unknown option: %d", opt);
+  else if (opt == 6) return fopen(filename, "a");
+  else errormsg("faskwopen(): Unknown option: %d", opt);
 
   return fopen(filename, "w");
+
 }

@@ -50,7 +50,7 @@ int UVES_rvshift(spectrum **spec, int nspec, params *par) {
     for (j=0; j<nspec; j++) if (!strcmp(vshiftfile,(*spec)[j].file)) break;
     if (j==nspec)
       errormsg("UVES_rvshift(): Cannot find file\n\t%s\n\
-\tspecified in velocity shift file\n\t%s\n\tin list of flux files");
+\tspecified in velocity shift file\n\t%s\n\tin list of flux files",vshiftfile,infile);
     (*spec)[j].vshift=vshift; (*spec)[j].vslope=vslope; (*spec)[j].refwav=refwav;
   }
   /* Close file */

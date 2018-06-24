@@ -1,9 +1,9 @@
 /****************************************************************************
-* Combined the continuua from all orders of all spectra into one
+* Combine the continuua from all orders of all spectra into one
 * continuous, smooth continuum for the combined spectrum
 *
 * opt = 0: Scale all orders according to their exposure time
-* opt = 1: Do no orders according to their exposure times
+* opt = 1: Do not scale orders according to their exposure times
 ****************************************************************************/
 
 #include <stdlib.h>
@@ -35,6 +35,16 @@ int UVES_combine_cont(spectrum *spec, int nspec, cspectrum *cspec, int opt,
 	    if (spec[i].or[j].rdst[k]==1) {
 	      spec[i].or[j].rder[k]*=scale; spec[i].or[j].rdef[k]*=scale;
 	      spec[i].or[j].rdme[k]*=scale;
+	    }
+	  }
+	  /* Do the same for alternative arrays for pre-v0.74 backwards compat. */
+	  if (par->version<0.74 && spec[i].or[j].rdfl_a!=NULL) {
+	    for (k=0; k<spec[i].or[j].nrdp; k++) {
+	      spec[i].or[j].rdfl_a[k]*=scale; spec[i].or[j].rdco[k]*=scale;
+	      if (spec[i].or[j].rdst[k]==1) {
+		spec[i].or[j].rder_a[k]*=scale; spec[i].or[j].rdef_a[k]*=scale;
+		spec[i].or[j].rdme_a[k]*=scale;
+	      }
 	    }
 	  }
 	}
@@ -114,7 +124,12 @@ int UVES_combine_cont(spectrum *spec, int nspec, cspectrum *cspec, int opt,
 	  scale=cspec->co[spec[i].or[j].csidx+k]/spec[i].or[j].rdco[k];
 	  spec[i].or[j].rdco[k]=cspec->co[spec[i].or[j].csidx+k];
 	  spec[i].or[j].rdfl[k]*=scale; spec[i].or[j].rder[k]*=scale;
-	  spec[i].or[j].rdef[k]*=scale;
+	  spec[i].or[j].rdef[k]*=scale; spec[i].or[j].rdme[k]*=scale;
+	  /* Do the same for alternative arrays for pre-v0.74 backwards compatibility */
+	  if (par->version<0.74 && spec[i].or[j].rdfl_a!=NULL) {
+	    spec[i].or[j].rdfl_a[k]*=scale; spec[i].or[j].rder_a[k]*=scale;
+	    spec[i].or[j].rdef_a[k]*=scale; spec[i].or[j].rdme_a[k]*=scale;
+	  }
 	}
       }
     }

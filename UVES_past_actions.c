@@ -239,6 +239,13 @@ int UVES_past_actions(spectrum *spec, int nspec, cspectrum *cspec, action *act,
 	    spec[act[i].i[0]].or[act[i].i[1]].rder[k]*=scale;
 	    spec[act[i].i[0]].or[act[i].i[1]].rdef[k]*=scale;
 	    spec[act[i].i[0]].or[act[i].i[1]].rdme[k]*=scale;
+	    /* Scale alternative arrays for pre-v0.74 backwards compatibility */
+	    if (par->version<0.74 && spec[act[i].i[0]].or[act[i].i[1]].rdfl_a!=NULL) {
+	      spec[act[i].i[0]].or[act[i].i[1]].rdfl_a[k]*=scale;
+	      spec[act[i].i[0]].or[act[i].i[1]].rder_a[k]*=scale;
+	      spec[act[i].i[0]].or[act[i].i[1]].rdef_a[k]*=scale;
+	      spec[act[i].i[0]].or[act[i].i[1]].rdme_a[k]*=scale;
+	    }
 	  }
 	}
 	else {
@@ -419,6 +426,13 @@ int UVES_past_actions(spectrum *spec, int nspec, cspectrum *cspec, action *act,
 	    spec[act[i].i[0]].or[act[i].i[1]].rder[k]*=scale;
 	    spec[act[i].i[0]].or[act[i].i[1]].rdef[k]*=scale;
 	    spec[act[i].i[0]].or[act[i].i[1]].rdme[k]*=scale;
+	    /* Scale alternative arrays for pre-v0.74 backwards compatibility */
+	    if (par->version<0.74 && spec[act[i].i[0]].or[act[i].i[1]].rdfl_a!=NULL) {
+	      spec[act[i].i[0]].or[act[i].i[1]].rdfl_a[k]*=scale;
+	      spec[act[i].i[0]].or[act[i].i[1]].rder_a[k]*=scale;
+	      spec[act[i].i[0]].or[act[i].i[1]].rdef_a[k]*=scale;
+	      spec[act[i].i[0]].or[act[i].i[1]].rdme_a[k]*=scale;
+	    }
 	  }
 	}
 	else {
@@ -528,6 +542,15 @@ int UVES_past_actions(spectrum *spec, int nspec, cspectrum *cspec, action *act,
 	  spec[act[i].i[0]].or[act[i].i[1]].rdef[j]*=act[i].d[0];
 	  spec[act[i].i[0]].or[act[i].i[1]].rdme[j]*=act[i].d[0];
 	}
+	/* Scale alternative arrays for pre-v0.74 backwards compatibility */
+	if (par->version<0.74 && spec[act[i].i[0]].or[act[i].i[1]].rdfl_a!=NULL) {
+	  for (j=0; j<spec[act[i].i[0]].or[act[i].i[1]].nrdp; j++) {
+	    spec[act[i].i[0]].or[act[i].i[1]].rdfl_a[j]*=act[i].d[0];
+	    spec[act[i].i[0]].or[act[i].i[1]].rder_a[j]*=act[i].d[0];
+	    spec[act[i].i[0]].or[act[i].i[1]].rdef_a[j]*=act[i].d[0];
+	    spec[act[i].i[0]].or[act[i].i[1]].rdme_a[j]*=act[i].d[0];
+	  }
+	}
 	spec[act[i].i[0]].or[act[i].i[1]].oscl=spec[act[i].i[0]].or[act[i].i[1]].scl;
 	spec[act[i].i[0]].or[act[i].i[1]].scl*=act[i].d[0];
 	break;
@@ -554,12 +577,12 @@ int UVES_past_actions(spectrum *spec, int nspec, cspectrum *cspec, action *act,
 	  }
 	} else {
 	  /* Reset continuum before rederiving it */
-	  for (i=0; i<nspec; i++) {
-	    for (j=0; j<spec[i].nor; j++) {
-	      if (spec[i].or[j].nuse>=MINUSE) {
-		for (k=0; k<spec[i].or[j].nrdp; k++)
-		  if (spec[i].or[j].rdst[k]==LCLIP && spec[i].or[j].rdst[k]==SCLIP)
-		    spec[i].or[j].rdst[k]=1;
+	  for (j=0; j<nspec; j++) {
+	    for (k=0; k<spec[j].nor; k++) {
+	      if (spec[j].or[k].nuse>=MINUSE) {
+		for (l=0; l<spec[j].or[k].nrdp; l++)
+		  if (spec[j].or[k].rdst[l]==LCLIP && spec[j].or[k].rdst[l]==SCLIP)
+		    spec[j].or[k].rdst[l]=1;
 	      }
 	    }
 	  }
@@ -572,6 +595,26 @@ int UVES_past_actions(spectrum *spec, int nspec, cspectrum *cspec, action *act,
 	    errormsg("UVES_past_actions(): Unknown error returned from\n\
 \tUVES_combine_cont()");
 	}
+	break;
+      case AAACT:
+	/** Switch alternative arrays to main arrays. Do this by
+	    freeing memory for main arrays, changing their pointers to
+	    the alternative arrays. Then set the alternative flux
+	    array pointers to NULL to signal to other subroutines to
+	    not keep them up to date anymore **/
+	if (par->version<0.74) {
+	  for (j=0; j<nspec; j++) {
+	    for (k=0; k<spec[j].nor; k++) {
+	      if (spec[j].or[k].nuse>=MINUSE && spec[j].or[k].rdfl_a!=NULL) {
+		free(spec[j].or[k].rdfl); spec[j].or[k].rdfl=spec[j].or[k].rdfl_a;
+		spec[j].or[k].rdfl_a=NULL;
+		free(spec[j].or[k].rder); spec[j].or[k].rder=spec[j].or[k].rder_a;
+		spec[j].or[k].rder_a=NULL;
+		free(spec[j].or[k].rdef); spec[j].or[k].rdef=spec[j].or[k].rdef_a;
+		spec[j].or[k].rdef_a=NULL;
+		free(spec[j].or[k].rdme); spec[j].or[k].rdme=spec[j].or[k].rdme_a;
+		spec[j].or[k].rdme_a=NULL;
+	} } } }
 	break;
 	/* Exit decision tree for different action types */
       }

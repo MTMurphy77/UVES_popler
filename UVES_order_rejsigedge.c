@@ -1,5 +1,5 @@
 /****************************************************************************
-* Reject sigmas from order edges which fall well below the general
+* Reject pixels from order edges which fall well below the general
 * trend of errors determined from a median filtered version of the
 * error array
 ****************************************************************************/

@@ -8,6 +8,11 @@ the clip array which are not equal to 1 will cause the corresponding
 data elements to be ignored. Other elements in the clip array are
 intialized to 1.
 
+Opt=0 will use the statistical uncertainty (err) array as the "sigma"
+in the clipping algorithm (but not the weighted mean calculation),
+while any other value for opt will cause the expected fluctuation
+(efl) array to be used.
+
 ****************************************************************************/
 
 #include <stdlib.h>
@@ -17,7 +22,7 @@ intialized to 1.
 #include "error.h"
 
 int sigclip(double *dat, double *err, double *efl, double *wgt, int ndat,
-	    double clipsig, statset *stat, int *clip) {
+	    double clipsig, statset *stat, int *clip, int opt) {
 
   double   sig=0.0,sign=0.0;
   int      sigidx=0,nval=0;
@@ -50,10 +55,20 @@ int sigclip(double *dat, double *err, double *efl, double *wgt, int ndat,
 \twhen calculating stats for %d valid data values",nval); return 0;
     }
     /* Find most deviant point */
-    i=0; while (clip[i]!=1) i++; sig=fabs(dat[i]-stat->wmean)/err[i];
-    sigidx=i; for (j=i+1; j<ndat; j++) {
-      if (clip[j]==1 && (sign=fabs(dat[j]-stat->wmean)/err[j])>sig) {
-	sig=sign; sigidx=j;
+    i=0; while (clip[i]!=1) i++;
+    if (!opt) {
+      sig=fabs(dat[i]-stat->wmean)/err[i];
+      sigidx=i; for (j=i+1; j<ndat; j++) {
+	if (clip[j]==1 && (sign=fabs(dat[j]-stat->wmean)/err[j])>sig) {
+	  sig=sign; sigidx=j;
+	}
+      }
+    } else {
+      sig=fabs(dat[i]-stat->wmean)/efl[i];
+      sigidx=i; for (j=i+1; j<ndat; j++) {
+	if (clip[j]==1 && (sign=fabs(dat[j]-stat->wmean)/efl[j])>sig) {
+	  sig=sign; sigidx=j;
+	}
       }
     }
     /* Clip out most deviant point */
