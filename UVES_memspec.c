@@ -46,10 +46,11 @@ int UVES_memspec(spectrum *spec, params *par, int ord, int opt) {
       /* Loop over nominated echelle orders */
       for (i=os; i<=oe; i++) {
 	/* Allocate memory for raw data arrays for this echelle order */
-	/* Unlike most other instruments/pipelines, HIRES REDUX and
-	   MAGE files have an actual wavelength array to be read in,
+	/* Unlike most other instruments/pipelines, HIRES REDUX, KODIAQ, MAGE
+	   and ESPRESSO files have an actual wavelength array to be read in,
 	   so allocate memory for the raw wavelength array first */
-	if (spec->ftype==FTHIRX || spec->ftype==FTMAGE) {
+	if (spec->ftype==FTHIRX || spec->ftype==FTKODI || spec->ftype==FTMAGE ||
+	    spec->ftype==FTESPR) {
 	  sprintf(array_name,"%s","raw wavel.");
 	  if ((spec->or[i].wl=darray(spec->or[i].np))==NULL) { ERR_ARRAY; }
 	}    
@@ -86,7 +87,8 @@ int UVES_memspec(spectrum *spec, params *par, int ord, int opt) {
       for (i=os; i<=oe; i++) {
 	if (os==oe || spec->or[i].nuse>=MINUSE) {
 	  /* If memory is to be freed */
-	  if (spec->ftype==FTHIRX || spec->ftype==FTMAGE) free(spec->or[i].wl);
+	  if (spec->ftype==FTHIRX || spec->ftype==FTKODI || spec->ftype==FTMAGE ||
+	      spec->ftype==FTESPR) free(spec->or[i].wl);
 	  free(spec->or[i].vhwl); free(spec->or[i].vhrwl); free(spec->or[i].fl);
 	  free(spec->or[i].er); free(spec->or[i].res); free(spec->or[i].st);
 	  if (par->thar==1) {

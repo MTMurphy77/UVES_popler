@@ -48,7 +48,7 @@ int UVES_r2Dspec_harps(spectrum *spec, params *par) {
   fitsfile *infits;
 
   /* Open input file as FITS file */
-  if (fits_open_file(&infits,spec->file,READONLY,&status))
+  if (fits_open_file(&infits,UVES_replace_envinstr(spec->file),READONLY,&status))
       errormsg("UVES_r2Dspec_harps(): Cannot open FITS file\n\t%s",spec->file);
 
   /* Check HDU type */
@@ -272,7 +272,7 @@ int UVES_r2Dspec_harps(spectrum *spec, params *par) {
   /** Open and read in sky image, if available **/
   if (spec->skysub) {
     /* Open input file as FITS file */
-    if (fits_open_file(&infits,spec->ss.file,READONLY,&status)) {
+    if (fits_open_file(&infits,UVES_replace_envinstr(spec->ss.file),READONLY,&status)) {
       warnmsg("UVES_r2Dspec_harps(): Cannot open FITS file\n\t%s\n\
 \twhich nominally corresponds to sky spectrum for spectrum in file\n\
 \t%s.",spec->ss.file,spec->file);
@@ -387,7 +387,7 @@ int UVES_r2Dspec_harps(spectrum *spec, params *par) {
       error arrays **/
   /** Object flux **/
   /* Open input file as FITS file */
-  if (fits_open_file(&infits,blzfile,READONLY,&status)) {
+  if (fits_open_file(&infits,UVES_replace_envinstr(blzfile),READONLY,&status)) {
     warnmsg("UVES_r2Dspec_harps(): Cannot open FITS file\n\t%s\n\
 \twhich is nominated as the corresponding blaze file\n\
 \tfor the spectrum in file\n\t%s.",blzfile,spec->file);
@@ -439,7 +439,7 @@ int UVES_r2Dspec_harps(spectrum *spec, params *par) {
   /* Sky flux */
   if (spec->skysub) {
     /* Open input file as FITS file */
-    if (fits_open_file(&infits,sblzfile,READONLY,&status)) {
+    if (fits_open_file(&infits,UVES_replace_envinstr(sblzfile),READONLY,&status)) {
       warnmsg("UVES_r2Dspec_harps(): Cannot open FITS file\n\t%s\n\
 \twhich is nominated as the corresponding blaze file\n\
 \tfor the sky spectrum in file\n\t%s.\n\

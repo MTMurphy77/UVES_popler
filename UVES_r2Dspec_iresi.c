@@ -29,7 +29,7 @@ int UVES_r2Dspec_iresi(spectrum *spec, params *par) {
   fitsfile *infits;
 
   /* Open input file as FITS file */
-  if (fits_open_file(&infits,spec->file,READONLY,&status))
+  if (fits_open_file(&infits,UVES_replace_envinstr(spec->file),READONLY,&status))
       errormsg("UVES_r2Dspec_iresi(): Cannot open FITS file\n\t%s",spec->file);
 
   /* Check HDU type */

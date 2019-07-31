@@ -17,8 +17,8 @@
 #define ISWAP(a,b)    itmp=(a);(a)=(b);(b)=itmp
 
 /* Version number, date created and UVES_popler website */
-#define VERSION       1.00    /* Version number */
-#define DATECREATE    "30 April 2017"
+#define VERSION       1.04    /* Version number */
+#define DATECREATE    "16 June 2019"
 #define WWW           "www.astronomy.swin.edu.au/~mmurphy/UVES_popler.html"
 
 /* General (non-option) Parameters */
@@ -52,9 +52,9 @@
  /* General spectrum specifications */
 #define COMBMETH      0       /* Switch to combine exposures using order-fits*/
 #define LINEAR        0       /* Log-lin (0) or linear (1) dispersion switch */
-#define FILETYPE      0       /* File origin: UVES (0), IRAF (1), MAKEE (2), */
-                              /*  IRAFLSS (3), HIREDUX (4), ESOMERGED (5),   */
-                              /*  MAGE (6), IRAFESI (7), COMB (9), mixed(-1) */
+#define FILETYPE      0       /* File origin: UVES(0), IRAF(1), MAKEE(2),    */
+                              /* IRAFLSS(3), HIREDUX(4), ESOMERGED(5),MAGE(6)*/
+                              /* KODIAQ(7), IRAFESI (8), COMB (10), mixed(-1)*/
 #define HELIO         0       /* Files in obs. (0) or heliocen. (1) frame    */
 #define VACWL         0       /* Files in air (0) or vac. (1) wavelengths    */
 #define THAR          0       /* Swith to combine different ThAr exposures   */
@@ -119,6 +119,7 @@
 #define ATMASK        0       /* Apply mask to atmospheric features          */
 #define ATMASKFILE "UVES_popler.atmomask"
                               /* Default name for atmo. mask file            */
+#define ATMASKMODE    0       /* Default mode for atmo. masking = after comb.*/
 #define DISTORT       0       /* Option for applying, or removing existing   */
                               /* distortions to wavelength scales of orders  */
 
@@ -168,10 +169,12 @@
 #define FTIRLS        3      /* IRAF LSS reduction products                  */
 #define FTHIRX        4      /* HIREDUX reduction products                   */
 #define FTESOM        5      /* ESOMERGE reduction products                  */
-#define FTMAGE        6      /* MAGE pipeline products                       */
-#define FTIESI        7      /* IRAF ESI pipeline products                   */
-#define FTHARP        8      /* HARPS (S & N) pipeline products              */
-#define FTCOMB        9      /* Combined spectrum                            */
+#define FTKODI        6      /* KODIAQ products                              */
+#define FTMAGE        7      /* MAGE pipeline products                       */
+#define FTIESI        8      /* IRAF ESI pipeline products                   */
+#define FTHARP        9      /* HARPS (S & N) pipeline products              */
+#define FTESPR       10      /* ESPRESSO pipeline products                   */
+#define FTCOMB       11      /* Combined spectrum                            */
 
 /* Fit labelling */
 #define FITPOL        1      /* Polynomial fit                               */
@@ -288,7 +291,8 @@ typedef struct EchOrder {
   double   seeing;                /* FWHM of spatial prof. in object extractn*/
   double   wpol[NWPOL];           /* Wavelength polynomial coefficients      */
   double   *wl;                   /* Pntr to raw wavelength array read from  */
-                                  /* input files for HIRES REDUX and MAGE only*/
+                                  /*  input files for HIRES REDUX, KODIAQ,   */
+                                  /*  MAGE, ESPRESSO only                    */
   double   *vhwl;                 /* Pntr to vac-hel arr of raw spec         */
   double   *vhrwl;                /* Pntr to right edge vac-hel array        */
   double   *fl;                   /* Pointer to flux array of raw spec       */
@@ -593,8 +597,6 @@ typedef struct Macmap {
 typedef struct AtMask {
   double   *swl;                  /* Starting wavelengths for mask regions   */
   double   *ewl;                  /* Ending wavelengths for mask regions     */
-  double   *cwl;                  /* Central wavelengths for mask regions    */
-  double   *resint;               /* Residual intensities                    */
   int      nmask;                 /* Number of rows in atmosphereic mask file*/
   char     atmaskfile[NAMELEN];   /* Name of mask file                       */
 } atmask;
@@ -634,7 +636,7 @@ int idxdmax(double *array, int n);
 int idxdmin(double *array, int n);
 int idxdval(double *array, int n, double val);
 int idxfval(float *array, int n, float val);
-int UVES_atmask(spectrum *spec, atmask *amsk, params *par);
+int UVES_atmask(spectrum *spec, cspectrum *cpsec, atmask *amsk, params *par);
 int UVES_boxcar(double *wl, double *fl, double *er, int ndat, int nwid,
 		double vwid, double *mean, double *rms, int opt1, int opt2);
 int UVES_chunk_cont(double *wl, double *fl, double *er, double *co, int *st,
@@ -678,15 +680,18 @@ int UVES_plot_replay(rplot *rp, action *act, int nact, plotbut *but, int nbut,
 int UVES_r1Dspec(cspectrum *cspec, params *par);
 int UVES_r2Dspec(spectrum *spec, params *par);
 int UVES_r2Dspec_ESOmer(spectrum *spec, params *par);
+int UVES_r2Dspec_espresso(spectrum *spec, params *par);
 int UVES_r2Dspec_harps(spectrum *spec, params *par);
 int UVES_r2Dspec_hirx(spectrum *spec, params *par);
 int UVES_r2Dspec_iraf(spectrum *spec, params *par);
 int UVES_r2Dspec_iresi(spectrum *spec, params *par);
 int UVES_r2Dspec_irls(spectrum *spec, params *par);
+int UVES_r2Dspec_KODIAQ(spectrum *spec, params *par);
 int UVES_r2Dspec_mage(spectrum *spec, params *par);
 int UVES_r2Dspec_makee(spectrum *spec, params *par);
 int UVES_ratmask(atmask *amsk, params *par);
 int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par);
+char *UVES_replace_envinstr(char *str);
 int UVES_replay_control(spectrum *spec, int nspec, cspectrum *cspec, cplot *cp,
 			rplot *rp, action **act, int *nact, int *nact_save,
 			params *par);

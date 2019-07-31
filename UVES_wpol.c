@@ -114,7 +114,7 @@ double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, int opt,
       /* Find wavelength corresponding to input pixel */
       if (!dpolint(x,y,NINTP,didx,&airwl,&dwl))
 	errormsg("UVES_wpol(): Polynomial interpolation with %d points\n\
-\tfailed when attempting to find wavelength corresponding to pixel %lf\n \
+\tfailed when attempting to find wavelength corresponding to pixel %lf\n\
 \tin order %d of file %d,\n\t%s",NINTP,idx,ord+1,spec->id,spec->file);
       /* Clean up */
       free(x); free(y);
@@ -129,6 +129,15 @@ double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, int opt,
     /* Linear wavelength solution stored in wpol parameters */
     /* Dispersion: w[i]=CRVAL1+([i+1]-CRPIX1)*CDELT1 */
     for (i=spec->or[ord].nwpol-1; i>=0; i--) airwl=spec->or[ord].wpol[i]+didx*airwl;
+    break;
+  case FTKODI:
+    /* Wavelength scale is provided as a table. The scale is (at least
+       very close to) log-linear scale. To determine wavelength values
+       between pixels, use local log-linear dispersion,
+       log10(w[i+1]/w[i]) */
+    i=(MIN((MAX((int)idx,0)),(spec->or[ord].np-2)));
+    dwl=log10(spec->or[ord].wl[i+1]/spec->or[ord].wl[i]);
+    airwl=spec->or[ord].wl[i]*pow(10.0,(idx-(double)i)*dwl);
     break;
   case FTMAGE:
     /* Wavelength scale is provided as a look-up table. The scale is
@@ -154,6 +163,19 @@ double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, int opt,
       for (i=spec->or[ord].nwpol-1; i>=0; i--) airwl=spec->or[ord].wpol[i]+didx*airwl;
     }
     break;
+  case FTESPR:
+    /* Wavelength scale is provided as an image. The scale is neither
+       linear nor log-linear. To determine wavelength values between
+       pixels, use local parabolic relation between central
+       wavelengths of nearest 3 pixels: wl_i = a + b(didx) + c(didx)^2.
+       In that case, a=wl_i, b=(wl_i+1-wl_i-1)/2-wl_i, c=(wl_i+1+wl_i-1)/2
+    */
+    i=(MIN((MAX((int)(idx+0.5),1)),spec->or[ord].np-2));
+    didx=idx-(double)i;
+    airwl=spec->or[ord].wl[i]+
+      0.5*(spec->or[ord].wl[i+1]-spec->or[ord].wl[i-1])*didx+
+      (0.5*(spec->or[ord].wl[i+1]+spec->or[ord].wl[i-1])-spec->or[ord].wl[i])*didx*didx;
+    break;
   }
 
   /* If user wants to apply a distortion, with randomized parameters,
@@ -178,13 +200,16 @@ double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, int opt,
   }
 
   /* Don't do anything else if only using ThAr frames. Also,
-     HIRES_REDUX files are already in vacuum heliocentric frame, as
+     HIRES_REDUX and KODIAQ files are already in vacuum heliocentric frame, as
      are MAGE files; IRAF-ESI files are in vacuum, but not
      heliocentric frame. Just ensure that any user-supplied velocity
      shifts are applied. */
-  if (par->thar==2 || spec->ftype==FTHIRX || spec->ftype==FTMAGE) {
+  /**********************/
+  /* TEMPORARY: TESTING IF ESPRESSO FILES ARE IN VAC. BARYCENTRIC */
+  /* ******************/
+  if (par->thar==2 || spec->ftype==FTHIRX || spec->ftype==FTKODI ||
+      spec->ftype==FTMAGE || spec->ftype==FTESPR) {
     vacwl=airwl;
-    // vacwl+=vacwl*spec->vshift/C_C_K;
     vacwl+=vacwl*(spec->vshift+(vacwl-spec->refwav)*spec->vslope/1000.0)/C_C_K;
     return vacwl;
   }
@@ -204,7 +229,6 @@ double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, int opt,
   }
 
   /* Apply user-supplied velocity shift for this spectrum */
-  // vacwl+=vacwl*spec->vshift/C_C_K;
   vacwl+=vacwl*(spec->vshift+(vacwl-spec->refwav)*spec->vslope/1000.0)/C_C_K;
 
   return vacwl;

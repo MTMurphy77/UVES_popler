@@ -33,8 +33,8 @@ General spectrum specifications:\n\
  -combmeth   =       %1d    : Comb. method, order-scaling (0), order-fitting (1)\n\
  -disp       =       TBD  : Dispersion in km/s or Angstroms (for lin. disp.)\n\
  -filetype   =       %1d    : File origin: UVES=0, IRAF=1, MAKEE=2, IRAFLSS=3,\n\
-                               HIREDUX=4, ESOMERGED=5, MAGE=6, IRAFESI=7,\n\
-                               HARPS=8, COMB=9, mixed=-1\n\
+                            HIREDUX=4, ESOMERGED=5, KODIAQ=6, MAGE=7, IRAFESI=8,\n\
+                            HARPS=9, ESPRESSO=10, COMB=11, mixed=-1\n\
  -helio      =       %1d    : Input files in observed(0) or heliocentric(1) frame\n\
  -vacwl      =       %1d    : Input files in air (0) or vacuum (1) wavelengths\n\
  -zem        = %10.5lf : Emission redshift of QSO (if required for cont. fit)\n\
@@ -105,10 +105,13 @@ Mode options:\n\
                              [o# or o#-#], either before or after [b|a] combination\n\
                              and existing actions. 5 columns:\n\
                              filepath [o#|o#-#|oall] [fe] [scale] [b|a]\n\
- -atmomask [FILE]         : Read file to mask spectra for atmospheric/telluric\n\
+ -atmomask [OPT=%1d] [FILE] : Read file to mask spectra for atmospheric/telluric\n\
                              features. File should have format: wav. start, wav. end\n\
                              [Ang.], residual intensity, wav. center [Ang.].\n\
-                             Wavelengths are in vacuum.\n\
+                             Wavelengths are in vacuum. OPT=2: No masking (default);\n\
+                             OPT=1: mask spectra after combination and cont. fit,\n\
+                             then recombine; OPT=2: mask before redispersion and\n\
+                             combination.\n\
  -distort                 : Apply a random velocity shift, drift and distortion to\n\
                              each echelle order. Use this flag to remove previously\n\
                              applied distortions saved in UPL file.\n\
@@ -117,7 +120,7 @@ Mode options:\n\
 	  ORDSIGNBR,ORDSIGZERO,ORDMEDFRAC,ORDMEDREJ,CLIPSIG,LRGERR,RANKSPEC,SCALMETH,
 	  SCALCLIP,SCALERR,NSCALCLIP,CONTFTYP,CONTORD,CONTPCTL,CONTSIGL,CONTSIGU,
 	  CONTWGT,CORDLYA,CORDRED,FTYPLYA,FTYPRED,NOCONT,PCTLLYA,PCTLRED,RSIGLYAL,
-	  RSIGLYAU,RSIGREDL,RSIGREDU,VCLYA,VCRED,VLYA,DAT,RAW,SAVE,REPLAY);
+	  RSIGLYAU,RSIGREDL,RSIGREDU,VCLYA,VCRED,VLYA,DAT,RAW,SAVE,REPLAY,ATMASK);
   exit(3);
 }
 
@@ -288,7 +291,8 @@ int main(int argc, char *argv[]) {
       if (sscanf(argv[i],"%s",par.vshiftfile)!=1) usage();
     }
     else if (!strcmp(argv[i],"-atmomask")) {
-      par.atmask=1; if (++i==argc || !strncmp(argv[i],"-",1)) usage();
+      if (++i==argc || sscanf(argv[i],"%d",&par.atmask)!=1) usage();
+      if (++i==argc || !strncmp(argv[i],"-",1)) usage();
       if (sscanf(argv[i],"%s",par.atmaskfile)!=1) usage();
     }
     else if (!strcmp(argv[i],"-scale")) {
@@ -326,6 +330,9 @@ int main(int argc, char *argv[]) {
   /* Make sure save flag is meaningful */
   if (par.save<0 || par.save>2)
     errormsg("The save flag (=%d) must be 0, 1 or 2",par.save);
+  /* Make sure atmospheric masking flag is meaningful */
+  if (par.atmask<0 || par.atmask>2)
+    errormsg("The save flag (=%d) must be 0, 1 or 2",par.save);
 
   /* Read velocity shift file provided by the user */
   if (par.vshift==1) {
@@ -340,7 +347,7 @@ int main(int argc, char *argv[]) {
   }
 
   /* Read the atmospheric feature mask file provided by the user */
-  if (par.atmask==1) {
+  if (par.atmask>0) {
     if (!UVES_ratmask(&amsk,&par))
       errormsg("Error reading atmospheric mask file %s",par.atmaskfile);
   }
@@ -378,6 +385,11 @@ int main(int argc, char *argv[]) {
 	errormsg("Error returned from UVES_r2Dspec_ESOmer()\n\
 \twhen attempting to read in spectrum %d,\n\t%s",i+1,spec[i].file);
       break;
+    case FTKODI:
+      if (!UVES_r2Dspec_KODIAQ(&(spec[i]),&par))
+	errormsg("Error returned from UVES_r2Dspec_KODIAQ()\n\
+\twhen attempting to read in spectrum %d,\n\t%s",i+1,spec[i].file);
+      break;
     case FTMAGE:
       if (!UVES_r2Dspec_mage(&(spec[i]),&par))
 	errormsg("Error returned from UVES_r2Dspec_mage()\n\
@@ -391,6 +403,11 @@ int main(int argc, char *argv[]) {
     case FTHARP:
       if (!UVES_r2Dspec_harps(&(spec[i]),&par))
 	errormsg("Error returned from UVES_r2Dspec_harps()\n\
+\twhen attempting to read in spectrum %d,\n\t%s",i+1,spec[i].file);
+      break;
+    case FTESPR:
+      if (!UVES_r2Dspec_espresso(&(spec[i]),&par))
+	errormsg("Error returned from UVES_r2Dspec_espresso()\n\
 \twhen attempting to read in spectrum %d,\n\t%s",i+1,spec[i].file);
       break;
     }
@@ -436,9 +453,12 @@ int main(int argc, char *argv[]) {
   /* Calculate heliocentric correction for each spectrum */
   if (par.thar<=1) {
     for (i=0; i<nspec; i++) {
-      if (!UVES_vhelio(&(spec[i])))
-	errormsg("Unknown error returned from UVES_vhelio()");
-      // fprintf(stdout,"%s %10.6lf\n",spec[i].abfile,spec[i].vhel);
+      /* Don't calculate it for KODIAQ files */
+      if (spec->ftype!=FTKODI) {
+	if (!UVES_vhelio(&(spec[i])))
+	  errormsg("Unknown error returned from UVES_vhelio()");
+	// fprintf(stdout,"%s %10.6lf\n",spec[i].abfile,spec[i].vhel);
+      }
     }
   }
 
@@ -486,9 +506,9 @@ int main(int argc, char *argv[]) {
 
   /* Mask atmospheric/telluric features in observer's reference frame
      if required */
-  if (par.atmask) {
+  if (par.atmask==2) {
     for (i=0; i<nspec; i++) {
-      if (!UVES_atmask(&(spec[i]),&amsk,&par))
+      if (!UVES_atmask(&(spec[i]),&cspec,&amsk,&par))
 	errormsg("Error returned from UVES_atmask() when attempting\n\
 \tto mask atmospheric features in file\n\t%s",spec[i].file);
     }
@@ -592,6 +612,20 @@ int main(int argc, char *argv[]) {
     /* Combine all orders and spectra together */
     if (!UVES_combine_spec(spec,nspec,&cspec,&par))
       errormsg("Problem combining spectra in UVES_combine_spec()");
+  }
+
+  /* Mask atmospheric/telluric features in observer's reference frame
+     if required */
+  if (par.atmask==1) {
+    for (i=0; i<nspec; i++) {
+      if (!UVES_atmask(&(spec[i]),&cspec,&amsk,&par))
+	errormsg("Error returned from UVES_atmask() when attempting\n\
+\tto mask atmospheric features in file\n\t%s",spec[i].file);
+    }
+    /* Recombine the spectra after the masking */
+    if (!UVES_combine_spec(spec,nspec,&cspec,&par))
+      errormsg("Problem combining spectra in UVES_combine_spec() after\n\
+\tmasking atmospheric lines in file\n\t%s",par.atmaskfile);
   }
 
   /* Carry out historical actions from previous reduction attempts */

@@ -20,7 +20,8 @@ int UVES_r1Dspec(cspectrum *cspec, params *par) {
   double   ddum=0.0;
   long     nrows=0;
   int      hdutype=0,hdunum=0,status=0,first=1,naxes=0,anynul=0;
-  int      idx=0,crpix=0,dcflag=0;
+  int      idx=0,crpix=0,dcflag=0,ESO_PHASE3=0,UVES_SQUAD_PHASE3=0;
+  int      col=0;
   int      i=0;
   char     buffer[LNGSTRLEN]="\0";
   char     comment[FLEN_COMMENT]="\0";
@@ -302,7 +303,10 @@ int UVES_r1Dspec(cspectrum *cspec, params *par) {
 	  errormsg("UVES_r1Dspec(): Less than MINUSE=%d data points in file\n\
 \t%s.\n\tTry reducing MINUSE or zero-pad data file",MINUSE,cspec->file);
       } else {
-	/* This might be a tabular FITS file */
+	/** This might be a tabular FITS file **/
+	/* Check if this is a Phase 3 UVES_SQUAD file */
+	if (fits_read_key(infits,TSTRING,"REFERENC",dummy,comment,&status)) status=0;
+	else if (!strncmp(comment,"Reference for UVES_SQUAD DR",27)) UVES_SQUAD_PHASE3=1;
 	/* Move to next HDU */
 	if (fits_movrel_hdu(infits,1,&hdutype,&status))
 	  errormsg("UVES_r1Dspec(): Cannot move to second HDU\n\tin FITS file\n\t%s.",
@@ -318,25 +322,50 @@ int UVES_r1Dspec(cspectrum *cspec, params *par) {
 \t%s from FITS file\n\t%s.","NAXIS",cspec->file);
 	if (naxes!=2) errormsg("UVES_r1Dspec(): The binary table in file\n\t%s\n\
 \tis %d-dimensional. It should be 2-dimensional",cspec->file,naxes);
+	/* Check if this is an ESO Phase 3 file */
+	if (fits_read_key(infits,TSTRING,"VOPUB",card,comment,&status)) status=0;
+	else if (!strncmp(card,"ESO/SAF",7)) ESO_PHASE3=1;
 	/* Find number of axes to be read in */
         if (fits_get_num_cols(infits,&naxes,&status))
 	  errormsg("UVES_r1Dspec(): Cannot read number of columns\n\
-\t%s in FITS file\n\t%s.","NAXIS2",cspec->file);
-	if (naxes<3) errormsg("UVES_r1Dspec(): Only %d arrays in file\n\
+\tin FITS file\n\t%s.",cspec->file);
+	/* If it's an ESO Phase 3 spectrum then check some basics */
+	if (ESO_PHASE3) {
+	  /* Check to make sure the basic set of columns can be read in later */
+	  if (fits_get_colname(infits,CASEINSEN,"WAVE",card,&col,&status))
+	    errormsg("UVES_r1Dspec(): Cannot find table column named %s\n\
+\tin binary table in FITS file\n\t%s","WAVE",cspec->file);
+	  if (fits_get_colname(infits,CASEINSEN,"FLUX",card,&col,&status))
+	    errormsg("UVES_r1Dspec(): Cannot find table column named %s\n\
+\tin binary table in FITS file\n\t%s","FLUX",cspec->file);
+	  if (fits_get_colname(infits,CASEINSEN,"ERR",card,&col,&status))
+	    errormsg("UVES_r1Dspec(): Cannot find table column named %s\n\
+\tin binary table in FITS file\n\t%s","ERR",cspec->file);
+	}
+	/* If it's not an ESO Phase 3 spectrum then you have to assume some things */
+	else if (naxes<3) errormsg("UVES_r1Dspec(): Only %d arrays in file\n\
 \t%s.\n\tMust be at least 3 arrays, flux and error, to make sense",naxes,
 			      cspec->file);
-	if (naxes==3)
+	else if (naxes==3)
 	  warnmsg("UVES_r1Dspec(): There are %d data arrays to be read from file\n\
 \t%s.\n\tAssuming that they are wavelength, flux and error, respectively",naxes,
 		  cspec->file);
-	if (naxes>=4)
+	else if (naxes>=4)
 	  warnmsg("UVES_r1Dspec(): There are %d data arrays to be read from file\n\
 \t%s.\n\tAssuming that the first is wavelength and the last 3 are normalized\n\
 \tflux, normalized error and continuum, respectively",naxes,cspec->file);
 	/* Find number of pixels to read in */
         if (fits_get_num_rows(infits,&nrows,&status))
 	  errormsg("UVES_r1Dspec(): Cannot read number of rows\n\
-\t%s in FITS file\n\t%s.","NAXIS2",cspec->file);
+\tin FITS file\n\t%s.",cspec->file);
+	/* If there's a single row then seek the "NELEM" keyword for
+	   clarification about the length of the arrays */
+	if (nrows==1 || ESO_PHASE3) {
+	  if (fits_read_key(infits,TLONG,"NELEM",&nrows,comment,&status))
+	    errormsg("UVES_r1Dspec(): Number of rows is 1 and/or this is\n\
+\tan ESO_PHASE3 file but the NELEM keyword cannot be found to clarify\n\
+\tlength of data arrays in FITS file\n\t%s.",cspec->file);
+	}
 	cspec->np=(int)nrows;
 	/* Initialize the combined spectrum but do not set its
 	   wavelength scale */
@@ -346,23 +375,33 @@ int UVES_r1Dspec(cspectrum *cspec, params *par) {
 	  return 0;
 	}
 	/* Read in wavelength data */
-	if (fits_read_col(infits,TDOUBLE,1,1,1,cspec->np,&nulval,cspec->wl,&anynul,
-			  &status))
+	if (ESO_PHASE3) fits_get_colname(infits,CASEINSEN,"WAVE",card,&col,&status);
+	else col=1;
+	if (fits_read_col(infits,TDOUBLE,col,1,1,cspec->np,&nulval,cspec->wl,
+			  &anynul,&status))
 	  errormsg("UVES_r1Dspec(): Cannot read wavelength array in file\n\
 \t%s",cspec->file);
 	/* Read in flux data */
-	if (fits_read_col(infits,TDOUBLE,2,1,1,cspec->np,&nulval,cspec->fl,&anynul,
-			  &status))
+	if (ESO_PHASE3) fits_get_colname(infits,CASEINSEN,"FLUX",card,&col,&status);
+	else col=2;
+	if (fits_read_col(infits,TDOUBLE,col,1,1,cspec->np,&nulval,cspec->fl,
+			  &anynul,&status))
 	  errormsg("UVES_r1Dspec(): Cannot read flux array in file\n\
 \t%s",cspec->file);
 	/* Read in error data */
-	if (fits_read_col(infits,TDOUBLE,3,1,1,cspec->np,&nulval,cspec->er,&anynul,
-			  &status))
+	if (ESO_PHASE3) fits_get_colname(infits,CASEINSEN,"ERR",card,&col,&status);
+	else col=3;
+	if (fits_read_col(infits,TDOUBLE,col,1,1,cspec->np,&nulval,cspec->er,&anynul,&status))
 	  errormsg("UVES_r1Dspec(): Cannot read error array in file\n\
 \t%s",cspec->file);
-	if (naxes>=4) {
+	if (naxes>=4 && (!ESO_PHASE3 || UVES_SQUAD_PHASE3)) {
 	  /* Read in continuum data */
-	  if (fits_read_col(infits,TDOUBLE,4,1,1,cspec->np,&nulval,cspec->co,
+	  if (UVES_SQUAD_PHASE3) {
+	    if (fits_get_colname(infits,CASEINSEN,"CONTINUUM",card,&col,&status))
+	      errormsg("UVES_r1Dspec(): Cannot find table column named %s\n\
+\tin binary table in FITS file\n\t%s","CONTINUUM",cspec->file);
+	  } else col=4;
+	  if (fits_read_col(infits,TDOUBLE,col,1,1,cspec->np,&nulval,cspec->co,
 			    &anynul,&status))
 	    errormsg("UVES_r1Dspec(): Cannot read continuum array in file\n\
 \t%s",cspec->file);
@@ -376,16 +415,60 @@ int UVES_r1Dspec(cspectrum *cspec, params *par) {
 	    cspec->no[i]=cspec->fl[i]; cspec->ne[i]=cspec->er[i]; cspec->co[i]=1.0;
 	  }
 	}
-	/* Initialize other arrays and check for bad pixels */
-	for (i=0; i<cspec->np; i++) {
-	  if (cspec->er[i]==0.0) {
-	    cspec->st[i]=RCLIP; cspec->no[i]=1.0; cspec->ncb[i]=cspec->nccb[i]=0;
-	    cspec->ef[i]=cspec->er[i]=cspec->nf[i]=cspec->ne[i]=-INFIN;
-	  } else {
-	    cspec->st[i]=cspec->ncb[i]=cspec->nccb[i]=1;
-	    cspec->ef[i]=cspec->er[i]; cspec->nf[i]=cspec->ne[i];
+	/* Extract the extra UVES_popler information from UVES_SQUAD Phase 3 files */
+	if (UVES_SQUAD_PHASE3) {
+	  /* Status */
+	  if (fits_get_colname(infits,CASEINSEN,"STATUS",card,&col,&status))
+	    errormsg("UVES_r1Dspec(): Cannot find table column named %s\n\
+\tin binary table in FITS file\n\t%s","STATUS",cspec->file);
+	  if (fits_read_col(infits,TINT,col,1,1,cspec->np,&nulval,cspec->st,
+			    &anynul,&status))
+	    errormsg("UVES_r1Dspec(): Cannot read status array in file\n\
+\t%s",cspec->file);
+	  /* Number of pixels before sigma clip */
+	  if (fits_get_colname(infits,CASEINSEN,"NPBCLIP",card,&col,&status))
+	    errormsg("UVES_r1Dspec(): Cannot find table column named %s\n\
+\tin binary table in FITS file\n\t%s","NPBCLIP",cspec->file);
+	  if (fits_read_col(infits,TINT,col,1,1,cspec->np,&nulval,cspec->ncb,
+			    &anynul,&status))
+	    errormsg("UVES_r1Dspec(): Cannot read array of num. contrib.\n\
+\tpixels before sigma-clipping in file\n\t%s",cspec->file);
+	  /* Number of pixels after sigma clip */
+	  if (fits_get_colname(infits,CASEINSEN,"NPACLIP",card,&col,&status))
+	    errormsg("UVES_r1Dspec(): Cannot find table column named %s\n\
+\tin binary table in FITS file\n\t%s","NPACLIP",cspec->file);
+	  if (fits_read_col(infits,TINT,col,1,1,cspec->np,&nulval,cspec->nccb,
+			    &anynul,&status))
+	    errormsg("UVES_r1Dspec(): Cannot read array of num. contrib.\n\
+\tpixels after sigma-clipping in file\n\t%s",cspec->file);
+	  /* Chisq. before sigma clip */
+	  if (fits_get_colname(infits,CASEINSEN,"CHBCLIP",card,&col,&status))
+	    errormsg("UVES_r1Dspec(): Cannot find table column named %s\n\
+\tin binary table in FITS file\n\t%s","CHBCLIP",cspec->file);
+	  if (fits_read_col(infits,TDOUBLE,col,1,1,cspec->np,&nulval,cspec->csq,
+			    &anynul,&status))
+	    errormsg("UVES_r1Dspec(): Cannot read array of num. contrib.\n\
+\tpixels before sigma-clipping in file\n\t%s",cspec->file);
+	  /* Chisq. after sigma clip */
+	  if (fits_get_colname(infits,CASEINSEN,"CHACLIP",card,&col,&status))
+	    errormsg("UVES_r1Dspec(): Cannot find table column named %s\n\
+\tin binary table in FITS file\n\t%s","CHACLIP",cspec->file);
+	  if (fits_read_col(infits,TDOUBLE,col,1,1,cspec->np,&nulval,cspec->ccsq,
+			    &anynul,&status))
+	    errormsg("UVES_r1Dspec(): Cannot read array of num. contrib.\n\
+\tpixels after sigma-clipping in file\n\t%s",cspec->file);
+	} else {
+	  /* Initialize other arrays and check for bad pixels */
+	  for (i=0; i<cspec->np; i++) {
+	    if (cspec->er[i]==0.0) {
+	      cspec->st[i]=RCLIP; cspec->no[i]=1.0; cspec->ncb[i]=cspec->nccb[i]=0;
+	      cspec->ef[i]=cspec->er[i]=cspec->nf[i]=cspec->ne[i]=-INFIN;
+	    } else {
+	      cspec->st[i]=cspec->ncb[i]=cspec->nccb[i]=1;
+	      cspec->ef[i]=cspec->er[i]; cspec->nf[i]=cspec->ne[i];
+	    }
+	    cspec->csq[i]=cspec->ccsq[i]=0.0;
 	  }
-	  cspec->csq[i]=cspec->ccsq[i]=0.0;
 	}
 	/* Make sure there's a reasonable amount of data */
 	if (cspec->np<MINUSE)
@@ -405,12 +488,9 @@ int UVES_r1Dspec(cspectrum *cspec, params *par) {
 	  cspec->flwl=cspec->wl[0]-(hdisp=0.5*cspec->dwl);
 	  for (i=0; i<cspec->np; i++) cspec->rwl[i]=cspec->wl[i]+hdisp;
 	} else {
+	  par->linear=0;
 	  cdelt=cspec->wl[1]/cspec->wl[0];
 	  cspec->dv=cspec->wl[cspec->np-1]/cspec->wl[cspec->np-2];
-	  par->linear=0; par->disp=C_C_K*(cspec->dv-1.0);
-	  cspec->dv=log10(cspec->dv); cspec->dwl=0.0; 
-	  cspec->flwl=cspec->wl[0]*pow(10.0,-(hdisp=0.5*cspec->dv));
-	  for (i=0; i<cspec->np; i++) cspec->rwl[i]=cspec->wl[i]*pow(10.0,hdisp);
 	  if (fabs((cspec->dv-cdelt)/cspec->dv)>=WLTOL)
 	    warnmsg("UVES_r1Dspec(): Wavelength scale in file\n\
 \t%s\n\tappears to be neither linear nor log-linear. Assuming log-linear.\n\
@@ -419,6 +499,10 @@ int UVES_r1Dspec(cspectrum *cspec, params *par) {
 \tout by UVES_popler will therefore make little sense. However, the ASCII\n\
 \tversion of the output file should make sense so I advise using the\n\
 \t-dat option. Abandon all hope, ye who enter here.",cspec->file);
+	  par->disp=C_C_K*(cspec->dv-1.0);
+	  cspec->dv=log10(cspec->dv); cspec->dwl=0.0;
+	  cspec->flwl=cspec->wl[0]*pow(10.0,-(hdisp=0.5*cspec->dv));
+	  for (i=0; i<cspec->np; i++) cspec->rwl[i]=cspec->wl[i]*pow(10.0,hdisp);
 	}
       }
     }
@@ -500,12 +584,9 @@ int UVES_r1Dspec(cspectrum *cspec, params *par) {
       cspec->flwl=cspec->wl[0]-(hdisp=0.5*cspec->dwl);
       for (i=0; i<cspec->np; i++) cspec->rwl[i]=cspec->wl[i]+hdisp;
     } else {
+      par->linear=0;
       cdelt=cspec->wl[1]/cspec->wl[0];
       cspec->dv=cspec->wl[cspec->np-1]/cspec->wl[cspec->np-2];
-      par->linear=0; par->disp=C_C_K*(cspec->dv-1.0); cspec->dv=log10(cspec->dv);
-      cspec->dwl=0.0; 
-      cspec->flwl=cspec->wl[0]*pow(10.0,-(hdisp=0.5*cspec->dv));
-      for (i=0; i<cspec->np; i++) cspec->rwl[i]=cspec->wl[i]*pow(10.0,hdisp);
       if (fabs((cspec->dv-cdelt)/cspec->dv)>=WLTOL)
 	warnmsg("UVES_r1Dspec(): Wavelength scale in file\n\
 \t%s\n\tappears to be neither linear nor log-linear. Assuming log-linear.\n\
@@ -514,6 +595,10 @@ int UVES_r1Dspec(cspectrum *cspec, params *par) {
 \tout by UVES_popler will therefore make little sense. However, the ASCII\n\
 \tversion of the output file should make sense so I advise using the\n\
 \t-dat option. Abandon all hope, ye who enter here.",cspec->file);
+      par->disp=C_C_K*(cspec->dv-1.0); cspec->dv=log10(cspec->dv);
+      cspec->dwl=0.0; 
+      cspec->flwl=cspec->wl[0]*pow(10.0,-(hdisp=0.5*cspec->dv));
+      for (i=0; i<cspec->np; i++) cspec->rwl[i]=cspec->wl[i]*pow(10.0,hdisp);
     }
   }
 

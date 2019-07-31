@@ -27,7 +27,7 @@ int UVES_r2Dspec_makee(spectrum *spec, params *par) {
   fitsfile *infits;
 
   /* Open input file as FITS file */
-  if (fits_open_file(&infits,spec->file,READONLY,&status))
+  if (fits_open_file(&infits,UVES_replace_envinstr(spec->file),READONLY,&status))
       errormsg("UVES_r2Dspec_makee(): Cannot open FITS file\n\t%s",spec->file);
 
   /* Check HDU type */
@@ -285,7 +285,7 @@ in FITS file\n\t%s","DATE-OBS",date,spec->file);
 
   /* Attempt to open error flux fits file */
   if (par->thar<=1) {
-    if (fits_open_file(&infits,spec->erfile,READONLY,&status))
+    if (fits_open_file(&infits,UVES_replace_envinstr(spec->erfile),READONLY,&status))
       errormsg("UVES_r2Dspec_makee(): Cannot open FITS file\n\t%s",spec->erfile);
 
     /* Get image dimensions */
@@ -318,7 +318,7 @@ in FITS file\n\t%s","DATE-OBS",date,spec->file);
 
   /* If ThAr information is to be read in, do it now */
   if (par->thar==1) {
-    if (fits_open_file(&infits,spec->thfile,READONLY,&status))
+    if (fits_open_file(&infits,UVES_replace_envinstr(spec->thfile),READONLY,&status))
       errormsg("UVES_r2Dspec_makee(): Cannot open FITS file\n\t%s",spec->thfile);
 
     /* Read in or, in this case, set archival filename */
@@ -393,7 +393,7 @@ in FITS file\n\t%s","DATE-OBS",date,spec->file);
   }
 
   /* Attempt to open wavelength solution fits file */
-  if (fits_open_file(&infits,spec->wlfile,READONLY,&status))
+  if (fits_open_file(&infits,UVES_replace_envinstr(spec->wlfile),READONLY,&status))
       errormsg("UVES_r2Dspec_makee(): Cannot open FITS file\n\t%s",spec->wlfile);
   
   /* Read in all coefficients */

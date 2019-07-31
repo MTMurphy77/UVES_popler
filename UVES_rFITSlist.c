@@ -27,18 +27,19 @@ int UVES_rFITSlist(char *infile, spectrum **spec, int *nspec, params *par) {
     errormsg("UVES_rFITSlist(): Problem reading file %s on line %d",infile,i);
   }
   /* File should be a list of FITS file names with absolute paths */
-  /* Check for absolute path names ... a weak check anyway */
-  if (strncmp(buffer,"/",1)) {
+  /* Check for absolute path names or environment variables ... a weak check anyway */
+  if (strncmp(buffer,"/",1) && strncmp(buffer,"$",1)) {
     fclose(data_file);
-    errormsg("UVES_rFITSlist(): FITS file path invalid on line %d\n\
+      errormsg("UVES_rFITSlist(): FITS file path invalid on line %d\n\
 \tin file %s.\n\
-\tYou must use absolute path names - FITS file names must begin with '/'.",
-	     1,infile);
+\tYou must use absolute path names directly or in environment\n\
+\tvariable names, i.e. FITS file names must begin with '/' or '$'.",
+	       1,infile);
   }
   /* See if it is a list of valid FITS files */
   while ((cptr=fgets(buffer,LNGSTRLEN,data_file))!=NULL) {
-    /* Check for absolute path names ... a weak check anyway */
-    if (strncmp(buffer,"/",1)) {
+    /* Check for absolute path names or environment variables ... a weak check anyway */
+    if (strncmp(buffer,"/",1) && strncmp(buffer,"$",1)) {
       fclose(data_file);
       errormsg("UVES_rFITSlist(): FITS file path invalid on line %d\n\
 \tin file %s.\n\
@@ -176,6 +177,15 @@ int UVES_rFITSlist(char *infile, spectrum **spec, int *nspec, params *par) {
 	}
 	sprintf((*spec)[i].wlfile,"%sUV_SRED_%s",(*spec)[i].path,cptr);
 	sprintf((*spec)[i].abwlfile,"UV_SRED_%s",cptr);
+      } else if ((*spec)[i].ftype==FTKODI) {
+	/* At the moment, KODIAQ files can have any file name because
+	   no associations must be assumed between flux files and
+	   other files (e.g. error, wavelength); the flux, wavelength
+	   and error information is all in one file */
+	sprintf((*spec)[i].erfile,"%s",(*spec)[i].file);
+	sprintf((*spec)[i].aberfile,"%s",(*spec)[i].abfile);
+	sprintf((*spec)[i].wlfile,"%s",(*spec)[i].file);
+	sprintf((*spec)[i].abwlfile,"%s",(*spec)[i].abfile);
       } else if ((*spec)[i].ftype==FTMAGE) {
 	sprintf((*spec)[i].aberfile,"%s",(*spec)[i].abfile);
 	if ((cptr=strstr((*spec)[i].aberfile,"spec_cal"))==NULL)
@@ -208,6 +218,11 @@ int UVES_rFITSlist(char *infile, spectrum **spec, int *nspec, params *par) {
 \tcharacteristics for flux file\n\t%s\n\
 \tHARPS (S or N) file names must have 'HARP[S or N]' prefix\n\
 \tand contain 'e2ds'.",(*spec)[i].file);
+	sprintf((*spec)[i].erfile,"%s",(*spec)[i].file);
+	sprintf((*spec)[i].aberfile,"%s",(*spec)[i].abfile);
+	sprintf((*spec)[i].wlfile,"%s",(*spec)[i].file);
+	sprintf((*spec)[i].abwlfile,"%s",(*spec)[i].abfile);
+      } else if ((*spec)[i].ftype==FTESPR) {
 	sprintf((*spec)[i].erfile,"%s",(*spec)[i].file);
 	sprintf((*spec)[i].aberfile,"%s",(*spec)[i].abfile);
 	sprintf((*spec)[i].wlfile,"%s",(*spec)[i].file);
@@ -268,6 +283,9 @@ int UVES_rFITSlist(char *infile, spectrum **spec, int *nspec, params *par) {
 	cptr+=5;
 	sprintf((*spec)[i].wlfile,"%swpol_%s",(*spec)[i].path,cptr);
 	sprintf((*spec)[i].abwlfile,"wpol_%s",cptr);
+      } else if ((*spec)[i].ftype==FTKODI) {
+	errormsg("UVES_rFITSlist(): Do not know how to read in\n\
+\tThAr KODIAQ files for flux file\n\t%s",(*spec)[i].file);
       } else if ((*spec)[i].ftype==FTMAGE) {
 	errormsg("UVES_rFITSlist(): Do not know how to read in\n\
 \tThAr MagE files for flux file\n\t%s",(*spec)[i].file);

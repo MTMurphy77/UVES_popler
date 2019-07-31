@@ -21,6 +21,7 @@ int UVES_wFITSfile(spectrum *spec, int nspec, cspectrum *cspec, params *par) {
   double   version=0.0;
   long     naxes[2]={0,0};
   long     fpixel[2]={0,0};
+  int      allUVES=1;
   int      crpix1=1,dc_flag=0;
   int      status=0,naxis=2,bitpix=DOUBLE_IMG;
   int      *itbl=NULL;
@@ -334,330 +335,332 @@ int UVES_wFITSfile(spectrum *spec, int nspec, cspectrum *cspec, params *par) {
   if (fits_write_key(outfits,TSTRING,key,"chisq. after clip",comment,&status))
     { ERR_PRIKEY; }
 
-
-  /** Create binary table HDU containing information about the combined spectrum **/
-  /* Create table */
-  if (fits_create_tbl(outfits,BINARY_TBL,0,TNCOLCOM,tcomt,tcomf,tcomu,extname[0],&status))
-    errormsg("UVES_wFITSfile(): Cannot create binary table extension\n\
-\t'%s' in FITS file\n\t%s",extname[0],cspec->FITSfile);
-  /* Write coarse information arrays */
-  j=0;
-  if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nc,cspec->cwav,&status)) { ERR_TABCOM; }
-  j++;
-  if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nc,cspec->csnrmax,&status)) { ERR_TABCOM; }
-  j++;
-  if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nc,cspec->csnrmed,&status)) { ERR_TABCOM; }
-  j++;
-  if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nc,cspec->ccnrmax,&status)) { ERR_TABCOM; }
-  j++;
-  if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nc,cspec->ccnrmed,&status)) { ERR_TABCOM; }
-  j++;
-  if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nc,cspec->cresnom,&status)) { ERR_TABCOM; }
-  j++;
-  if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nc,cspec->cresarc,&status)) { ERR_TABCOM; }
-
-
-  /** Create binary table HDU containing the wavelength coverage map **/
-  /* Create table */
-  if (fits_create_tbl(outfits,BINARY_TBL,0,TNCOLWCO,twcot,twcof,twcou,extname[1],&status))
-    errormsg("UVES_wFITSfile(): Cannot create binary table extension\n\
-\t'%s' in FITS file\n\t%s",extname[1],cspec->FITSfile);
-  /* Allocate memory for temporary double array */
-  if ((dtbl=darray(cspec->nwavcov))==NULL)
-    errormsg("UVES_wFITSfile(): Cannot allocate memory for dtbl\n\
-\tarray of length %d",cspec->nwavcov);
-  /* Write wavelength coverage arrays */
-  j=0; for (i=0; i<cspec->nwavcov; i++) dtbl[i]=cspec->wavcov[i][0];
-  if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nwavcov,dtbl,&status)) { ERR_TABWCO; }
-  j++; for (i=0; i<cspec->nwavcov; i++) dtbl[i]=cspec->wavcov[i][1];
-  if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nwavcov,dtbl,&status)) { ERR_TABWCO; }
-
-
-  /** Create binary table HDU containing parameters from each exposure **/
-  /* Only do this if we have contributing spectra, i.e. not for
-     already-combined spectra */
-  if (nspec) {
+  /* Write out additional information about the combined and
+     contributing exposures in binary table extensions, but only do
+     this for UVES spectra */
+  for (i=0; i<nspec; i++) if (spec[i].ftype!=FTUVES) { allUVES=0; break; }
+  if (allUVES) {
+    /** Create binary table HDU containing information about the combined spectrum **/
     /* Create table */
-    if (fits_create_tbl(outfits,BINARY_TBL,0,TNCOLEXP,texpt,texpf,texpu,
-			extname[2],&status))
+    if (fits_create_tbl(outfits,BINARY_TBL,0,TNCOLCOM,tcomt,tcomf,tcomu,extname[0],&status))
       errormsg("UVES_wFITSfile(): Cannot create binary table extension\n\
-\t'%s' in FITS file\n\t%s",extname[2],cspec->FITSfile);
-    /* Write number of files to header (may not be number of exposures) */
-    sprintf(key,"NFILES"); sprintf(comment,"Number of flux files");
-    if (fits_write_key(outfits,TINT,key,&nspec,comment,&status)) {
-      errormsg("UVES_wFITSfile(): Could not add\n\
-\t'%s' keyword to binary table extension %d, '%s', in FITS file\n\t%s",
-	       key,2,extname[2],cspec->FITSfile);
-    }
-    /* Allocate memory for double and integer arrays */
-    if ((dtbl=darray(nspec))==NULL)
-      errormsg("UVES_wFITSfile(): Cannot allocate memory for dtbl\n\
-\tarray of length %d",nspec);
-    if ((itbl=iarray(nspec))==NULL)
-      errormsg("UVES_wFITSfile(): Cannot allocate memory for itbl\n\
-\tarray of length %d",nspec);
-    /* Allocate memory for string matrix */
-    if ((stbl=cmatrix(nspec,FLEN_KEYWORD))==NULL)
-      errormsg("UVES_wFITSfile(): Cannot allocate memory for stbl\n\
-\tarray of length %dx%d",nspec,FLEN_KEYWORD);
-    /* Paths: Last 3 elements of path only */
+\t'%s' in FITS file\n\t%s",extname[0],cspec->FITSfile);
+    /* Write coarse information arrays */
     j=0;
-    for (i=0; i<nspec; i++) {
-      /* Determine last 3 elements of path */
-      sprintf(path,"%s",spec[i].path); token[0]=strtok(path,delim);
-      k=0; while (token[k]!=NULL) { k++; token[k]=strtok(NULL,delim); }
-      sprintf(pathend,"/"); for (l=(MAX(0,k-3)); l<k; l++) {
-	strcat(pathend,token[l]); strcat(pathend,"/");
+    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nc,cspec->cwav,&status)) { ERR_TABCOM; }
+    j++;
+    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nc,cspec->csnrmax,&status)) { ERR_TABCOM; }
+    j++;
+    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nc,cspec->csnrmed,&status)) { ERR_TABCOM; }
+    j++;
+    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nc,cspec->ccnrmax,&status)) { ERR_TABCOM; }
+    j++;
+    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nc,cspec->ccnrmed,&status)) { ERR_TABCOM; }
+    j++;
+    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nc,cspec->cresnom,&status)) { ERR_TABCOM; }
+    j++;
+    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nc,cspec->cresarc,&status)) { ERR_TABCOM; }
+
+    /** Create binary table HDU containing the wavelength coverage map **/
+    /* Create table */
+    if (fits_create_tbl(outfits,BINARY_TBL,0,TNCOLWCO,twcot,twcof,twcou,extname[1],&status))
+      errormsg("UVES_wFITSfile(): Cannot create binary table extension\n\
+\t'%s' in FITS file\n\t%s",extname[1],cspec->FITSfile);
+    /* Allocate memory for temporary double array */
+    if ((dtbl=darray(cspec->nwavcov))==NULL)
+      errormsg("UVES_wFITSfile(): Cannot allocate memory for dtbl\n\
+\tarray of length %d",cspec->nwavcov);
+    /* Write wavelength coverage arrays */
+    j=0; for (i=0; i<cspec->nwavcov; i++) dtbl[i]=cspec->wavcov[i][0];
+    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nwavcov,dtbl,&status)) { ERR_TABWCO; }
+    j++; for (i=0; i<cspec->nwavcov; i++) dtbl[i]=cspec->wavcov[i][1];
+    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,cspec->nwavcov,dtbl,&status)) { ERR_TABWCO; }
+
+    /** Create binary table HDU containing parameters from each exposure **/
+    /* Only do this if we have contributing spectra, i.e. not for
+       already-combined spectra */
+    if (nspec) {
+      /* Create table */
+      if (fits_create_tbl(outfits,BINARY_TBL,0,TNCOLEXP,texpt,texpf,texpu,
+			  extname[2],&status))
+	errormsg("UVES_wFITSfile(): Cannot create binary table extension\n\
+\t'%s' in FITS file\n\t%s",extname[2],cspec->FITSfile);
+      /* Write number of files to header (may not be number of exposures) */
+      sprintf(key,"NFILES"); sprintf(comment,"Number of flux files");
+      if (fits_write_key(outfits,TINT,key,&nspec,comment,&status)) {
+	errormsg("UVES_wFITSfile(): Could not add\n\
+\t'%s' keyword to binary table extension %d, '%s', in FITS file\n\t%s",
+		 key,2,extname[2],cspec->FITSfile);
       }
-      if (strlen(pathend)<FLEN_KEYWORD) sprintf(stbl[i],"%s",pathend);
-      else errormsg("UVES_wFITSfile(): Length of last 3 elements of file path,\n\
+      /* Allocate memory for double and integer arrays */
+      if ((dtbl=darray(nspec))==NULL)
+	errormsg("UVES_wFITSfile(): Cannot allocate memory for dtbl\n\
+\tarray of length %d",nspec);
+      if ((itbl=iarray(nspec))==NULL)
+	errormsg("UVES_wFITSfile(): Cannot allocate memory for itbl\n\
+\tarray of length %d",nspec);
+      /* Allocate memory for string matrix */
+      if ((stbl=cmatrix(nspec,FLEN_KEYWORD))==NULL)
+	errormsg("UVES_wFITSfile(): Cannot allocate memory for stbl\n\
+\tarray of length %dx%d",nspec,FLEN_KEYWORD);
+      /* Paths: Last 3 elements of path only */
+      j=0;
+      for (i=0; i<nspec; i++) {
+	/* Determine last 3 elements of path */
+	sprintf(path,"%s",spec[i].path); token[0]=strtok(path,delim);
+	k=0; while (token[k]!=NULL) { k++; token[k]=strtok(NULL,delim); }
+	sprintf(pathend,"/"); for (l=(MAX(0,k-3)); l<k; l++) {
+	  strcat(pathend,token[l]); strcat(pathend,"/");
+	}
+	if (strlen(pathend)<FLEN_KEYWORD) sprintf(stbl[i],"%s",pathend);
+	else errormsg("UVES_wFITSfile(): Length of last 3 elements of file path,\n\
 \t%s,\n\too long (=%d) to be written to output FITS file\n\t%s.\n\
 \tConsider decreasing path name length and/or increasing length of\n\
 \tinternal variable beyond FLEN_KEYWORD (=%d)",pathend,strlen(pathend),
-		    cspec->FITSfile,FLEN_KEYWORD);
-    }
-    if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
-    /* Flux, error and wavelength file names */
-    j++;
-    for (i=0; i<nspec; i++) {
-      if (strlen(spec[i].abfile)<FLEN_KEYWORD) sprintf(stbl[i],"%s",spec[i].abfile);
-      else errormsg("UVES_wFITSfile(): Length of flux file name,\n\t%s,\n\
+		      cspec->FITSfile,FLEN_KEYWORD);
+      }
+      if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
+      /* Flux, error and wavelength file names */
+      j++;
+      for (i=0; i<nspec; i++) {
+	if (strlen(spec[i].abfile)<FLEN_KEYWORD) sprintf(stbl[i],"%s",spec[i].abfile);
+	else errormsg("UVES_wFITSfile(): Length of flux file name,\n\t%s,\n\
 \ttoo long (=%d) to be written to output FITS file\n\t%s.\n\
 \tConsider decreasing file name length and/or increasing length of\n\
 \tinternal variable beyond FLEN_KEYWORD (=%d)",spec[i].abfile,
-		    strlen(spec[i].abfile),cspec->FITSfile,FLEN_KEYWORD);
-    }
-    if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
-    j++;
-    for (i=0; i<nspec; i++) {
-      if (strlen(spec[i].aberfile)<FLEN_KEYWORD) sprintf(stbl[i],"%s",spec[i].aberfile);
-      else errormsg("UVES_wFITSfile(): Length of error file name,\n\t%s,\n\
+		      strlen(spec[i].abfile),cspec->FITSfile,FLEN_KEYWORD);
+      }
+      if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
+      j++;
+      for (i=0; i<nspec; i++) {
+	if (strlen(spec[i].aberfile)<FLEN_KEYWORD) sprintf(stbl[i],"%s",spec[i].aberfile);
+	else errormsg("UVES_wFITSfile(): Length of error file name,\n\t%s,\n\
 \ttoo long (=%d) to be written to output FITS file\n\t%s.\n\
 \tConsider decreasing file name length and/or increasing length of\n\
 \tinternal variable beyond FLEN_KEYWORD (=%d)",spec[i].aberfile,
-		    strlen(spec[i].aberfile),cspec->FITSfile,FLEN_KEYWORD);
-    }
-    if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
-    j++;
-    for (i=0; i<nspec; i++) {
-      if (strlen(spec[i].abthfile)<FLEN_KEYWORD) sprintf(stbl[i],"%s",spec[i].abwlfile);
-      else errormsg("UVES_wFITSfile(): Length of wavelength file name,\n\t%s,\n\
+		      strlen(spec[i].aberfile),cspec->FITSfile,FLEN_KEYWORD);
+      }
+      if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
+      j++;
+      for (i=0; i<nspec; i++) {
+	if (strlen(spec[i].abthfile)<FLEN_KEYWORD) sprintf(stbl[i],"%s",spec[i].abwlfile);
+	else errormsg("UVES_wFITSfile(): Length of wavelength file name,\n\t%s,\n\
 \ttoo long (=%d) to be written to output FITS file\n\t%s.\n\
 \tConsider decreasing file name length and/or increasing length of\n\
 \tinternal variable beyond FLEN_KEYWORD (=%d)",spec[i].abwlfile,
-		    strlen(spec[i].abwlfile),cspec->FITSfile,FLEN_KEYWORD);
+		      strlen(spec[i].abwlfile),cspec->FITSfile,FLEN_KEYWORD);
+      }
+      if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Archival file name */
+      for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].arfile);
+      if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Wavcal archival file name */
+      for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].wlarfile);
+      if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* File type */
+      for (i=0; i<nspec; i++) itbl[i]=spec[i].ftype;
+      if (fits_write_col(outfits,TINT,j+1,1,1,nspec,itbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Object name */
+      for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].obj);
+      if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Program ID */
+      for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].progid);
+      if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* OB ID */
+      for (i=0; i<nspec; i++) itbl[i]=spec[i].obid;
+      if (fits_write_col(outfits,TINT,j+1,1,1,nspec,itbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Nominal central wavelength */
+      for (i=0; i<nspec; i++) itbl[i]=rint(spec[i].cwl);
+      if (fits_write_col(outfits,TINT,j+1,1,1,nspec,itbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Date */
+      for (i=0; i<nspec; i++)
+	sprintf(stbl[i],"%04d-%02d-%02d",spec[i].year,spec[i].month,spec[i].day);
+      if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* DPR.TECH */
+      for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].dprtech);
+      if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* DPR.TYPE */
+      for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].dprtype);
+      if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* DPR.CATG */
+      for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].dprcatg);
+      if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* INS.PATH */
+      for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].inspath);
+      if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* INS.MODE */
+      for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].insmode);
+      if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* INS.DROT */
+      for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].insdrot);
+      if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Binning */
+      for (i=0; i<nspec; i++) sprintf(stbl[i],"%dx%d",spec[i].binx,spec[i].biny);
+      if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Julian date */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].jd;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Epoch */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].epoch;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* UT */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].ut;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Exposure time */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].etime;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* RA */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].ra;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* DEC */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].dec;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Slit width */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].sw;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Grating encoder value */
+      for (i=0; i<nspec; i++) itbl[i]=spec[i].encoder;
+      if (fits_write_col(outfits,TINT,j+1,1,1,nspec,itbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Airmass */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].airmass[0];
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].airmass[1];
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Seeing */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].seeing[0];
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].seeing[1];
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].seeing[2];
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Latitude */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].lat;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Longitude */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].lon;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Altitude */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].alt;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Heliocentric velocity (calculated) */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].vhel;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Heliocentric velocity (from original file header) */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].vhel_head;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Barycentric velocity (from original file header) */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].vbar_head;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Temperature */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].temp;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Pressure */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].pres;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Moon RA */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].moon_ra;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Moon Dec */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].moon_dec;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Moon angular distance */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].moon_ang;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Moon phase */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].moon_phase;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Wavcal date */
+      for (i=0; i<nspec; i++)
+	sprintf(stbl[i],"%04d-%02d-%02d",spec[i].wc_year,spec[i].wc_month,spec[i].wc_day);
+      if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Wavcal Julian date */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].wc_jd;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Wavcal UT */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].wc_ut;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Wavcal exposure time */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].wc_etime;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Wavcal slit width */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].wc_sw;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Wavcal grating encoder value */
+      for (i=0; i<nspec; i++) itbl[i]=spec[i].wc_encoder;
+      if (fits_write_col(outfits,TINT,j+1,1,1,nspec,itbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Wavcal temperature */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].wc_temp;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Wavcal pressure */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].wc_pres;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Wavcal number of lines in wavelength solution */
+      for (i=0; i<nspec; i++) itbl[i]=spec[i].ts.np;
+      if (fits_write_col(outfits,TINT,j+1,1,1,nspec,itbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Wavcal median RMS of wavelength solution */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].wc_resid;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Wavcal arc FWHM */
+      for (i=0; i<nspec; i++) dtbl[i]=spec[i].arcfwhm;
+      if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
+      j++;
+      /* Clean up */
+      free(dtbl); free(itbl); free(*stbl); free(stbl);
     }
-    if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Archival file name */
-    for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].arfile);
-    if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Wavcal archival file name */
-    for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].wlarfile);
-    if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* File type */
-    for (i=0; i<nspec; i++) itbl[i]=spec[i].ftype;
-    if (fits_write_col(outfits,TINT,j+1,1,1,nspec,itbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Object name */
-    for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].obj);
-    if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Program ID */
-    for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].progid);
-    if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* OB ID */
-    for (i=0; i<nspec; i++) itbl[i]=spec[i].obid;
-    if (fits_write_col(outfits,TINT,j+1,1,1,nspec,itbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Nominal central wavelength */
-    for (i=0; i<nspec; i++) itbl[i]=rint(spec[i].cwl);
-    if (fits_write_col(outfits,TINT,j+1,1,1,nspec,itbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Date */
-    for (i=0; i<nspec; i++)
-      sprintf(stbl[i],"%04d-%02d-%02d",spec[i].year,spec[i].month,spec[i].day);
-    if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* DPR.TECH */
-    for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].dprtech);
-    if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* DPR.TYPE */
-    for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].dprtype);
-    if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* DPR.CATG */
-    for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].dprcatg);
-    if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* INS.PATH */
-    for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].inspath);
-    if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* INS.MODE */
-    for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].insmode);
-    if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* INS.DROT */
-    for (i=0; i<nspec; i++) sprintf(stbl[i],"%s",spec[i].insdrot);
-    if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Binning */
-    for (i=0; i<nspec; i++) sprintf(stbl[i],"%dx%d",spec[i].binx,spec[i].biny);
-    if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Julian date */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].jd;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Epoch */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].epoch;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* UT */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].ut;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Exposure time */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].etime;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* RA */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].ra;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* DEC */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].dec;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Slit width */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].sw;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Grating encoder value */
-    for (i=0; i<nspec; i++) itbl[i]=spec[i].encoder;
-    if (fits_write_col(outfits,TINT,j+1,1,1,nspec,itbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Airmass */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].airmass[0];
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].airmass[1];
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Seeing */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].seeing[0];
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].seeing[1];
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].seeing[2];
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Latitude */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].lat;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Longitude */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].lon;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Altitude */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].alt;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Heliocentric velocity (calculated) */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].vhel;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Heliocentric velocity (from original file header) */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].vhel_head;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Barycentric velocity (from original file header) */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].vbar_head;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Temperature */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].temp;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Pressure */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].pres;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Moon RA */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].moon_ra;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Moon Dec */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].moon_dec;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Moon angular distance */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].moon_ang;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Moon phase */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].moon_phase;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Wavcal date */
-    for (i=0; i<nspec; i++)
-      sprintf(stbl[i],"%04d-%02d-%02d",spec[i].wc_year,spec[i].wc_month,spec[i].wc_day);
-    if (fits_write_col(outfits,TSTRING,j+1,1,1,nspec,stbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Wavcal Julian date */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].wc_jd;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Wavcal UT */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].wc_ut;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Wavcal exposure time */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].wc_etime;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Wavcal slit width */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].wc_sw;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Wavcal grating encoder value */
-    for (i=0; i<nspec; i++) itbl[i]=spec[i].wc_encoder;
-    if (fits_write_col(outfits,TINT,j+1,1,1,nspec,itbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Wavcal temperature */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].wc_temp;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Wavcal pressure */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].wc_pres;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Wavcal number of lines in wavelength solution */
-    for (i=0; i<nspec; i++) itbl[i]=spec[i].ts.np;
-    if (fits_write_col(outfits,TINT,j+1,1,1,nspec,itbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Wavcal median RMS of wavelength solution */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].wc_resid;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Wavcal arc FWHM */
-    for (i=0; i<nspec; i++) dtbl[i]=spec[i].arcfwhm;
-    if (fits_write_col(outfits,TDOUBLE,j+1,1,1,nspec,dtbl,&status)) { ERR_TABEXP; }
-    j++;
-    /* Clean up */
-    free(dtbl); free(itbl); free(*stbl); free(stbl);
   }
   /* Close file */
   fits_close_file(outfits,&status);
-
 
   /* If required, write out a FITS file containing all the
      redispersed, merged ThAr spectra */

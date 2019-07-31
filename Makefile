@@ -18,7 +18,7 @@ LIBS = -ldl -lm -lX11 -L/opt/local/lib -lcpgplot -lpgplot /opt/local/lib/libcfit
 TARGET = ${HOME}/bin/UVES_popler
 DEVTARGET = ${HOME}/bin/UVES_popler.dev
 
-OBJECTS = ast_coord.o ast_date2epoch.o ast_date2jd.o ast_epoch2jd.o ast_jd2date.o ast_jd2epoch.o ast_mst.o ast_precess.o ast_rotmatrix.o ast_vbary.o ast_vorbit.o ast_vrotate.o brent.o carray.o chebyshev_eval.o chixy.o chixy_fixa.o cmatrix.o covsrt.o dpolint.o dselect.o edlen_a2v.o edlen_v2a.o erffn.o errormsg.o EW.o darray.o djmax.o djmin.o dmatrix.o farray.o faskropen.o faskwopen.o fcompl.o fitexy.o fjmax.o fjmin.o gammcf.o gammln.o gammp.o gammq.o gammser.o gaussj.o get_input.o getscbc.o iarray.o idxdmax.o idxdval.o idxfval.o idxival.o ijmax.o imatrix.o isodd.o isdir.o legendre_eval.o linfit.o median.o medianrun.o mnbrak.o mrqcof.o mrqfit_erffn.o mrqfit_gauss.o mrqfit_multierffn.o mrqmin.o nferrormsg.o pg_button.o pg_get_wins.o pg_open.o pg_win_rename.o poly_eval.o pythag.o qsort_darray.o qsort_dbleint.o qsort_dbletwointarray.o ran.o sigclip.o spline.o splint.o stats.o strisnum.o strlower.o svbksb.o svdcmp.o svdfit.o svdfit_chebyshev.o svdfit_legendre.o svdfit_poly.o svdvar.o UVES_atmask.o UVES_boxcar.o UVES_chunk_cont.o UVES_combine_cont.o UVES_combine_nocont.o UVES_combine_region.o UVES_combine_spec.o UVES_combsynthThAr.o UVES_confit.o UVES_cspec_cont.o UVES_cspec_stats.o UVES_hex2dec.o UVES_hirx_blzfit.o UVES_init_cspec.o UVES_memspec.o UVES_merge_thar.o UVES_model_resol.o UVES_order_cont.o UVES_order_rejsigedge.o UVES_order_sigclip.o UVES_order_stats.o UVES_params_init.o UVES_params_set.o UVES_past_actions.o UVES_pgenv_init.o UVES_pixscal.o UVES_plot_cspec.o UVES_plot_replay.o UVES_popler.o UVES_r1Dspec.o UVES_r2Dspec.o UVES_r2Dspec_ESOmer.o UVES_r2Dspec_harps.o UVES_r2Dspec_hirx.o UVES_r2Dspec_iraf.o UVES_r2Dspec_iresi.o UVES_r2Dspec_irls.o UVES_r2Dspec_mage.o UVES_r2Dspec_makee.o UVES_ratmask.o UVES_redispers.o UVES_replay_control.o UVES_rescale_region.o UVES_revwpol.o UVES_rinputfile.o UVES_rFITSlist.o UVES_rMacmap.o UVES_rscale.o UVES_rUPLfile.o UVES_rvshift.o UVES_scale.o UVES_select_subspec.o UVES_set_wavelen_scale.o UVES_skysub.o UVES_synthThAr.o UVES_thar_sigarray.o UVES_undo_lastact.o UVES_vhelio.o UVES_wDATfile.o UVES_wFITSfile.o UVES_wrawFITS.o UVES_wUPLfile.o UVES_wpol.o UVES_tmpfit.o warnmsg.o zbrent.o
+OBJECTS = ast_coord.o ast_date2epoch.o ast_date2jd.o ast_epoch2jd.o ast_jd2date.o ast_jd2epoch.o ast_mst.o ast_precess.o ast_rotmatrix.o ast_vbary.o ast_vorbit.o ast_vrotate.o brent.o carray.o chebyshev_eval.o chixy.o chixy_fixa.o cmatrix.o covsrt.o dpolint.o dselect.o edlen_a2v.o edlen_v2a.o erffn.o errormsg.o EW.o darray.o djmax.o djmin.o dmatrix.o farray.o faskropen.o faskwopen.o fcompl.o fitexy.o fjmax.o fjmin.o gammcf.o gammln.o gammp.o gammq.o gammser.o gaussj.o get_input.o getscbc.o iarray.o idxdmax.o idxdval.o idxfval.o idxival.o ijmax.o imatrix.o isodd.o isdir.o legendre_eval.o linfit.o median.o medianrun.o mnbrak.o mrqcof.o mrqfit_erffn.o mrqfit_gauss.o mrqfit_multierffn.o mrqmin.o nferrormsg.o pg_button.o pg_get_wins.o pg_open.o pg_win_rename.o poly_eval.o pythag.o qsort_darray.o qsort_dbleint.o qsort_dbletwointarray.o ran.o sigclip.o spline.o splint.o stats.o strisnum.o strlower.o svbksb.o svdcmp.o svdfit.o svdfit_chebyshev.o svdfit_legendre.o svdfit_poly.o svdvar.o UVES_atmask.o UVES_boxcar.o UVES_chunk_cont.o UVES_combine_cont.o UVES_combine_nocont.o UVES_combine_region.o UVES_combine_spec.o UVES_combsynthThAr.o UVES_confit.o UVES_cspec_cont.o UVES_cspec_stats.o UVES_hex2dec.o UVES_hirx_blzfit.o UVES_init_cspec.o UVES_memspec.o UVES_merge_thar.o UVES_model_resol.o UVES_order_cont.o UVES_order_rejsigedge.o UVES_order_sigclip.o UVES_order_stats.o UVES_params_init.o UVES_params_set.o UVES_past_actions.o UVES_pgenv_init.o UVES_pixscal.o UVES_plot_cspec.o UVES_replace_envinstr.o UVES_plot_replay.o UVES_popler.o UVES_r1Dspec.o UVES_r2Dspec.o UVES_r2Dspec_ESOmer.o UVES_r2Dspec_espresso.o UVES_r2Dspec_harps.o UVES_r2Dspec_hirx.o UVES_r2Dspec_iraf.o UVES_r2Dspec_iresi.o UVES_r2Dspec_irls.o UVES_r2Dspec_KODIAQ.o UVES_r2Dspec_mage.o UVES_r2Dspec_makee.o UVES_ratmask.o UVES_redispers.o UVES_replay_control.o UVES_rescale_region.o UVES_revwpol.o UVES_rinputfile.o UVES_rFITSlist.o UVES_rMacmap.o UVES_rscale.o UVES_rUPLfile.o UVES_rvshift.o UVES_scale.o UVES_select_subspec.o UVES_set_wavelen_scale.o UVES_skysub.o UVES_synthThAr.o UVES_thar_sigarray.o UVES_undo_lastact.o UVES_vhelio.o UVES_wDATfile.o UVES_wFITSfile.o UVES_wrawFITS.o UVES_wUPLfile.o UVES_wpol.o UVES_tmpfit.o warnmsg.o zbrent.o
 
 UVES_popler: $(OBJECTS)
 	$(CC) -o $(TARGET) $(OBJECTS) $(LIBS)
@@ -485,6 +485,20 @@ UVES_plot_cspec.o: /opt/local/include/X11/extensions/shape.h
 UVES_plot_cspec.o: /opt/local/include/X11/extensions/shapeconst.h charstr.h
 UVES_plot_cspec.o: utils.h fit.h stats.h sort.h gamm.h input.h memory.h
 UVES_plot_cspec.o: const.h error.h
+UVES_replace_envinstr.o: UVES_popler.h pg_plot.h /opt/local/include/cpgplot.h
+UVES_replace_envinstr.o: /opt/local/include/X11/Xlib.h
+UVES_replace_envinstr.o: /opt/local/include/X11/X.h
+UVES_replace_envinstr.o: /opt/local/include/X11/Xfuncproto.h
+UVES_replace_envinstr.o: /opt/local/include/X11/Xosdefs.h
+UVES_replace_envinstr.o: /opt/local/include/X11/Xutil.h
+UVES_replace_envinstr.o: /opt/local/include/X11/keysym.h
+UVES_replace_envinstr.o: /opt/local/include/X11/keysymdef.h
+UVES_replace_envinstr.o: /opt/local/include/X11/Xatom.h
+UVES_replace_envinstr.o: /opt/local/include/X11/Xos.h
+UVES_replace_envinstr.o: /opt/local/include/X11/Xarch.h
+UVES_replace_envinstr.o: /opt/local/include/X11/extensions/shape.h
+UVES_replace_envinstr.o: /opt/local/include/X11/extensions/shapeconst.h
+UVES_replace_envinstr.o: charstr.h utils.h memory.h error.h
 UVES_plot_replay.o: UVES_popler.h pg_plot.h /opt/local/include/cpgplot.h
 UVES_plot_replay.o: /opt/local/include/X11/Xlib.h /opt/local/include/X11/X.h
 UVES_plot_replay.o: /opt/local/include/X11/Xfuncproto.h
@@ -551,6 +565,22 @@ UVES_r2Dspec_ESOmer.o: /opt/local/include/X11/Xarch.h
 UVES_r2Dspec_ESOmer.o: /opt/local/include/X11/extensions/shape.h
 UVES_r2Dspec_ESOmer.o: /opt/local/include/X11/extensions/shapeconst.h
 UVES_r2Dspec_ESOmer.o: charstr.h utils.h astron.h const.h memory.h error.h
+UVES_r2Dspec_espresso.o: /opt/local/include/fitsio.h
+UVES_r2Dspec_espresso.o: /opt/local/include/longnam.h UVES_popler.h pg_plot.h
+UVES_r2Dspec_espresso.o: /opt/local/include/cpgplot.h
+UVES_r2Dspec_espresso.o: /opt/local/include/X11/Xlib.h
+UVES_r2Dspec_espresso.o: /opt/local/include/X11/X.h
+UVES_r2Dspec_espresso.o: /opt/local/include/X11/Xfuncproto.h
+UVES_r2Dspec_espresso.o: /opt/local/include/X11/Xosdefs.h
+UVES_r2Dspec_espresso.o: /opt/local/include/X11/Xutil.h
+UVES_r2Dspec_espresso.o: /opt/local/include/X11/keysym.h
+UVES_r2Dspec_espresso.o: /opt/local/include/X11/keysymdef.h
+UVES_r2Dspec_espresso.o: /opt/local/include/X11/Xatom.h
+UVES_r2Dspec_espresso.o: /opt/local/include/X11/Xos.h
+UVES_r2Dspec_espresso.o: /opt/local/include/X11/Xarch.h
+UVES_r2Dspec_espresso.o: /opt/local/include/X11/extensions/shape.h
+UVES_r2Dspec_espresso.o: /opt/local/include/X11/extensions/shapeconst.h
+UVES_r2Dspec_espresso.o: charstr.h utils.h stats.h memory.h error.h const.h
 UVES_r2Dspec_harps.o: /opt/local/include/fitsio.h
 UVES_r2Dspec_harps.o: /opt/local/include/longnam.h UVES_popler.h pg_plot.h
 UVES_r2Dspec_harps.o: /opt/local/include/cpgplot.h
@@ -625,6 +655,22 @@ UVES_r2Dspec_irls.o: /opt/local/include/X11/Xarch.h
 UVES_r2Dspec_irls.o: /opt/local/include/X11/extensions/shape.h
 UVES_r2Dspec_irls.o: /opt/local/include/X11/extensions/shapeconst.h charstr.h
 UVES_r2Dspec_irls.o: utils.h astron.h const.h memory.h error.h
+UVES_r2Dspec_KODIAQ.o: /opt/local/include/fitsio.h
+UVES_r2Dspec_KODIAQ.o: /opt/local/include/longnam.h UVES_popler.h pg_plot.h
+UVES_r2Dspec_KODIAQ.o: /opt/local/include/cpgplot.h
+UVES_r2Dspec_KODIAQ.o: /opt/local/include/X11/Xlib.h
+UVES_r2Dspec_KODIAQ.o: /opt/local/include/X11/X.h
+UVES_r2Dspec_KODIAQ.o: /opt/local/include/X11/Xfuncproto.h
+UVES_r2Dspec_KODIAQ.o: /opt/local/include/X11/Xosdefs.h
+UVES_r2Dspec_KODIAQ.o: /opt/local/include/X11/Xutil.h
+UVES_r2Dspec_KODIAQ.o: /opt/local/include/X11/keysym.h
+UVES_r2Dspec_KODIAQ.o: /opt/local/include/X11/keysymdef.h
+UVES_r2Dspec_KODIAQ.o: /opt/local/include/X11/Xatom.h
+UVES_r2Dspec_KODIAQ.o: /opt/local/include/X11/Xos.h
+UVES_r2Dspec_KODIAQ.o: /opt/local/include/X11/Xarch.h
+UVES_r2Dspec_KODIAQ.o: /opt/local/include/X11/extensions/shape.h
+UVES_r2Dspec_KODIAQ.o: /opt/local/include/X11/extensions/shapeconst.h
+UVES_r2Dspec_KODIAQ.o: charstr.h utils.h memory.h error.h
 UVES_r2Dspec_mage.o: /opt/local/include/fitsio.h /opt/local/include/longnam.h
 UVES_r2Dspec_mage.o: UVES_popler.h pg_plot.h /opt/local/include/cpgplot.h
 UVES_r2Dspec_mage.o: /opt/local/include/X11/Xlib.h /opt/local/include/X11/X.h

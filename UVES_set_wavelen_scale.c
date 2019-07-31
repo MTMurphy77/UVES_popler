@@ -9,6 +9,8 @@
 #include "memory.h"
 #include "error.h"
 
+#include <stdio.h>
+
 int UVES_set_wavelen_scale(spectrum *spec, int nspec, cspectrum *cspec,
 			   params *par) {
 

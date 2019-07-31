@@ -15,11 +15,11 @@
 int UVES_r2Dspec(spectrum *spec, params *par) {
 
   double   hour=0.0,min=0.0,sec=0.0,mnorm=0.0,dm=0.0;
-  double   nulval=0.0;
+  double   nulval=0.0,ddum=0.0;
   double   *coefd=NULL,*resol=NULL,*resid=NULL,*seeing=NULL;
   long     nrows=0;
   long     naxes[9]={0,0,0,0,0,0,0,0,0};
-  int      npix=0,col=0,ncoefd=0,No=0,ms=0,me=0,mslope=0,idum=0;
+  int      npix=0,col=0,ncoefd=0,No=0,ms=0,me=0,mslope=0,sord=0,idum=0;
   int      hdutype=0,hdunum=0,hdumove=0,status=0,bitpix=0,first=1,naxis=0,anynul=0;
   int      i=0,j=0,k=0,l=0,m=0;
   int      *ord1=NULL,*ord2=NULL;
@@ -32,7 +32,7 @@ int UVES_r2Dspec(spectrum *spec, params *par) {
   fitsfile *infits;
 
   /* Open input file as FITS file */
-  if (fits_open_file(&infits,spec->file,READONLY,&status))
+  if (fits_open_file(&infits,UVES_replace_envinstr(spec->file),READONLY,&status))
       errormsg("UVES_r2Dspec(): Cannot open FITS file\n\t%s",spec->file);
 
   /* Check HDU type */
@@ -385,26 +385,31 @@ int UVES_r2Dspec(spectrum *spec, params *par) {
     if (fits_movrel_hdu(infits,1,&hdutype,&status))
       errormsg("UVES_r2Dspec(): Cannot move to second HDU\n\tin FITS file\n\t%s.",
 	       spec->file);
-    /* Loop over orders - starting from order 2 and ending at order N-1 */
-    for (i=1; i<spec->nor-1; i++) {
-      /* Read seeing for this order */
+    /* Find first order number by trial and error (hummph), assuming
+       there must be <=500 orders stored */
+    for (i=0; i<500; i++) {
       sprintf(card,"HIERARCH ESO QC ORD%d OBJ FWHM",i+1);
-      if (fits_read_key(infits,TDOUBLE,card,&(spec->or[i].seeing),comment,&status))
-	errormsg("UVES_r2Dspec(): Cannot read value of header card\n\
-\t%s from FITS file\n\t%s.",card,spec->file);
+      if (!fits_read_key(infits,TDOUBLE,card,&ddum,comment,&status)) {
+	sord=i; break;
+      }
+      status=0;
+    }
+    if (i==500) {
+      sprintf(card,"HIERARCH ESO QC ORDNNN OBJ FWHM");
+      errormsg("UVES_r2Dspec(): Cannot find keywords of the form\n\
+\t'%s' in header of FITS file\n\t%s.",card,spec->file);
+    }
+    /* Loop over orders, replacing missing values with preceding ones if needed */
+    for (i=0,j=sord; i<spec->nor; i++,j++) {
+      /* Read seeing for this order */
+      sprintf(card,"HIERARCH ESO QC ORD%d OBJ FWHM",j+1);
+      fits_read_key(infits,TDOUBLE,card,&(spec->or[i].seeing),comment,&status);
+      status=0;
+    }
+    for (i=1; i<spec->nor; i++) {
+      if (spec->or[i].seeing<DRNDTOL) spec->or[i].seeing=spec->or[i-1].seeing;
       /* Convert from spatial pixels to arceseconds */
       spec->or[i].seeing*=spec->pixscal*(double)spec->biny;
-    }
-    /* If values first and last orders are not present then replace
-       them with the values for order 2 and N-1 respectively */
-    sprintf(card,"HIERARCH ESO QC ORD%d OBJ FWHM",1);
-    if (fits_read_key(infits,TDOUBLE,card,&(spec->or[0].seeing),comment,&status)) {
-      status=0; spec->or[0].seeing=spec->or[1].seeing;
-    }
-    sprintf(card,"HIERARCH ESO QC ORD%d OBJ FWHM",spec->nor);
-    if (fits_read_key(infits,TDOUBLE,card,&(spec->or[spec->nor-1].seeing),comment,
-		      &status)) {
-      status=0; spec->or[spec->nor-1].seeing=spec->or[spec->nor-2].seeing;
     }
     /* Calculate the median seeing in this spectrum for writing to spectrum structure */
     /* Allocate memory for temporary seeing array */
@@ -425,7 +430,7 @@ int UVES_r2Dspec(spectrum *spec, params *par) {
 
   /* Attempt to open error flux fits file */
   if (par->thar<=1) {
-    if (fits_open_file(&infits,spec->erfile,READONLY,&status))
+    if (fits_open_file(&infits,UVES_replace_envinstr(spec->erfile),READONLY,&status))
       errormsg("UVES_r2Dspec_ESOmer(): Cannot open FITS file\n\t%s",spec->erfile);
     /* Get image dimensions */
     if (fits_get_img_param(infits,9,&bitpix,&naxis,naxes,&status))
@@ -453,7 +458,7 @@ int UVES_r2Dspec(spectrum *spec, params *par) {
 
   /* If ThAr information is to be read in, do it now */
   if (par->thar==1) {
-    if (fits_open_file(&infits,spec->thfile,READONLY,&status))
+    if (fits_open_file(&infits,UVES_replace_envinstr(spec->thfile),READONLY,&status))
       errormsg("UVES_r2Dspec(): Cannot open FITS file\n\t%s",spec->thfile);
     /* For now, advance one HDU in CPL-written files */
     if (spec->fvers==1 && fits_movrel_hdu(infits,1,&hdutype,&status))
@@ -570,7 +575,7 @@ int UVES_r2Dspec(spectrum *spec, params *par) {
   }
 
   /* Attempt to open wavelength solution fits file */
-  if (fits_open_file(&infits,spec->wlfile,READONLY,&status))
+  if (fits_open_file(&infits,UVES_replace_envinstr(spec->wlfile),READONLY,&status))
       errormsg("UVES_r2Dspec(): Cannot open FITS file\n\t%s",spec->wlfile);
   /* Check number of HDUs */
   if (fits_get_num_hdus(infits,&hdunum,&status))

@@ -79,16 +79,16 @@ int UVES_rinputfile(char *infile, spectrum **spec, int *nspec, action **act,
 \tspectrum file \n\t%s",cspec->file);
   }
   for (i=0; i<*nspec; i++) {
-    if (access((*spec)[i].file,R_OK))
+    if (access(UVES_replace_envinstr((*spec)[i].file),R_OK))
       errormsg("UVES_rinputfile(): Cannot find flux file\n\t%s",(*spec)[i].file);
-    if (par->thar==1 && access((*spec)[i].thfile,R_OK))
+    if (par->thar==1 && access(UVES_replace_envinstr((*spec)[i].thfile),R_OK))
       errormsg("UVES_rinputfile(): Cannot find ThAr file\n\t%s",(*spec)[i].thfile);
     if (par->thar<=1) {
-      if (access((*spec)[i].erfile,R_OK))
+      if (access(UVES_replace_envinstr((*spec)[i].erfile),R_OK))
 	errormsg("UVES_rinputfile(): Cannot find error array file\n\t%s\n\
 \tfor flux array file\n\t%s",(*spec)[i].erfile,(*spec)[i].file);
     }
-    if (access((*spec)[i].wlfile,R_OK))
+    if (access(UVES_replace_envinstr((*spec)[i].wlfile),R_OK))
       errormsg("UVES_rinputfile(): Cannot find wavelen. poly. file\n\t%s\n\
 \tfor flux array file\n\t%s",(*spec)[i].wlfile,(*spec)[i].file);
   }

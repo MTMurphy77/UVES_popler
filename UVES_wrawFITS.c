@@ -133,8 +133,10 @@ errormsg("UVES_wrawFITS(): Cannot create image array %d in\n\
 	     FLEN_VALUE);
   FITS_WKEYS("REDFILE","Reduced flux file name");
   /* Archival file name */
-  sprintf(vals,"%s",spec->arfile);
-  FITS_WKEYS("ARFILE","Original, archival file name");
+  if (spec->ftype==FTUVES) {
+    sprintf(vals,"%s",spec->arfile);
+    FITS_WKEYS("ARFILE","Original, archival file name");
+  }
   /* File type */
   vali=spec->ftype; FITS_WKEYI("FILETYPE","File type - see web for code");
   /* Number of echelle orders */
