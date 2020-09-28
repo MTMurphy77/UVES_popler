@@ -12,8 +12,10 @@
 # Mac OS X - assumes PGPLOT and CFITSIO were installed through MacPorts.
 SHELL = tcsh
 CC = gcc
-CFLAGS = -O2 -Wall -I./ -I/opt/local/include
-LIBS = -ldl -lm -lX11 -L/opt/local/lib -lcpgplot -lpgplot /opt/local/lib/libcfitsio.a
+#CFLAGS = -O2 -Wall -I./ -I/opt/local/include
+CFLAGS = -O2 -Wall -I./ -I${HOME}/progs/pgplot -I/opt/local/include
+#LIBS = -ldl -lm -lcurl -lX11 -L/opt/local/lib -lcpgplot -lpgplot /opt/local/lib/libcfitsio.a
+LIBS = -ldl -lm -lX11 -L${HOME}/progs/pgplot -lcpgplot -lpgplot /opt/local/lib/libcfitsio.a
 
 TARGET = ${HOME}/bin/UVES_popler
 DEVTARGET = ${HOME}/bin/UVES_popler.dev

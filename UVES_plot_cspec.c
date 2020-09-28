@@ -245,7 +245,8 @@ int UVES_plot_cspec(spectrum *spec, int nspec, cspectrum *cspec, cplot *cp,
     cpgsci(5);
     cpgsch(0.3*plenv.ch); cpgbox("BCTS",0.0,0,"BC",0.0,0); cpgsch(plenv.ch);
     cpgsci(7); cpgsch(0.8*plenv.ch); cpgbox("N",0.0,0,"",0.0,0);
-    cpgsci(3); cpgmtxt("B",2.5,0.5,0.5,plenv.xlab[0]);
+    cpgsci(3);
+    cpgmtxt("B",2.5,0.5,0.5,plenv.xlab[0]);
     cpgsci(1); cpgsch(plenv.ch); cpgbin(shnp,shwl,shfl,1);
     cpgsci(3); cpgslw(2.0*plenv.lw); cpgsfs(2);
     cpgrect(plenv.xmin[1],plenv.xmax[1],plenv.ymin[3],plenv.ymax[3]);

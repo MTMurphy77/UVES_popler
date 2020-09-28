@@ -47,13 +47,19 @@ int UVES_r2Dspec_makee(spectrum *spec, params *par) {
 
   /* Get object name */
   if (par->thar<=1) {
-    if (fits_read_key(infits,TSTRING,"TARGNAME",spec->obj,comment,&status))
-      errormsg("UVES_r2Dspec_makee(): Cannot read value of header card \n\
-\t%s from FITS file\n\t%s.","TARGNAME",spec->file);
+    if (fits_read_key(infits,TSTRING,"TARGNAME",spec->obj,comment,&status)) {
+      /* Old, single-chip HIRES data only have an "OBJECT" keyword, so use that instead */
+      status=0;
+      if (fits_read_key(infits,TSTRING,"OBJECT",spec->obj,comment,&status))
+	errormsg("UVES_r2Dspec_makee(): Cannot read value of header cards \n\
+\t%s or %s from FITS file\n\t%s.","TARGNAME","OBJECT",spec->file);
+    }
   }
   else sprintf(spec->obj,"thar_wav");
   /* Alter object name to remove some special characters */
   while ((cptr=strchr(spec->obj,' '))!=NULL) *cptr='_';
+  while ((cptr=strchr(spec->obj,'('))!=NULL) *cptr='_';
+  while ((cptr=strchr(spec->obj,')'))!=NULL) *cptr='_';
   while ((cptr=strchr(spec->obj,'+'))!=NULL) *cptr='p';
   while ((cptr=strchr(spec->obj,'-'))!=NULL) *cptr='m';
 
