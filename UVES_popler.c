@@ -34,7 +34,7 @@ General spectrum specifications:\n\
  -disp       =       TBD  : Dispersion in km/s or Angstroms (for lin. disp.)\n\
  -filetype   =       %1d    : File origin: UVES=0, IRAF=1, MAKEE=2, IRAFLSS=3,\n\
                             HIREDUX=4, ESOMERGED=5, KODIAQ=6, MAGE=7, IRAFESI=8,\n\
-                            HARPS=9, ESPRESSO=10, COMB=11, mixed=-1\n\
+                            HARPS=9, ESPRESSO=10, COMB=11, PYPEIT=12, mixed=-1\n\
  -helio      =       %1d    : Input files in observed(0) or heliocentric(1) frame\n\
  -vacwl      =       %1d    : Input files in air (0) or vacuum (1) wavelengths\n\
  -zem        = %10.5lf : Emission redshift of QSO (if required for cont. fit)\n\
@@ -408,6 +408,11 @@ int main(int argc, char *argv[]) {
     case FTESPR:
       if (!UVES_r2Dspec_espresso(&(spec[i]),&par))
 	errormsg("Error returned from UVES_r2Dspec_espresso()\n\
+\twhen attempting to read in spectrum %d,\n\t%s",i+1,spec[i].file);
+      break;
+    case FTPYPE:
+      if (!UVES_r2Dspec_pypeit(&(spec[i]),&par))
+	errormsg("Unknown error returned from UVES_r2Dspec_pypeit()\n\
 \twhen attempting to read in spectrum %d,\n\t%s",i+1,spec[i].file);
       break;
     }

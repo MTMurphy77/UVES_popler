@@ -44,6 +44,7 @@ UVES_r2Dspec_iresi.c
 UVES_r2Dspec_irls.c
 UVES_r2Dspec_mage.c
 UVES_r2Dspec_makee.c
+UVES_r2Dspec_pypeit.c
 UVES_rFITSlist.c
 UVES_rMacmap.c
 UVES_rUPLfile.c
