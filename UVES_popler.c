@@ -458,8 +458,8 @@ int main(int argc, char *argv[]) {
   /* Calculate heliocentric correction for each spectrum */
   if (par.thar<=1) {
     for (i=0; i<nspec; i++) {
-      /* Don't calculate it for KODIAQ files */
-      if (spec->ftype!=FTKODI) {
+      /* Don't calculate it for KODIAQ and PypeIt files */
+      if ((spec->ftype!=FTKODI) & (spec->ftype!=FTPYPE)) {
 	if (!UVES_vhelio(&(spec[i])))
 	  errormsg("Unknown error returned from UVES_vhelio()");
 	// fprintf(stdout,"%s %10.6lf\n",spec[i].abfile,spec[i].vhel);
