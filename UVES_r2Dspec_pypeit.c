@@ -11,22 +11,25 @@
 #include "memory.h"
 #include "error.h"
 #include "const.h"
+#include "stdbool.h"
 
 int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
 
-  double   hour=0.0,min=0.0,sec=0.0,onorm=0.0;
+  double   hour=0.0,min=0.0,sec=0.0;
   double   nulval=0.0,tmpvhel=0.0;
-  double   nrmt[2];
+//  double   nrmt[2],onorm=0.0;
   double   dwl=0.0;
   double   *blzfit=NULL;
-  double   *coeff=NULL,*coeffo=NULL;
-  double   **blz=NULL;
-  long     nrows=0,No=0;
-  long     naxes[9]={0,0,0,0,0,0,0,0,0};
-  int      npix=0,col=0,norm=0;
-  int      hdutype=0,hdunum=0,status=0,bitpix=0,first=1,naxis=0,anynul=0;
+//  double   *coeff=NULL,*coeffo=NULL;
+  bool     badorder=false;
+//  long     nrows=0,No=0;
+//  long     naxes[9]={0,0,0,0,0,0,0,0,0};
+//  int      col=0,naxis=0;
+  int      hdutype=0,hdunum=0,status=0,anynul=0;
   int      i=0,j=0,k=0;
-  int      *ord=NULL;
+  int      thisorder=0,norm=0;
+  int      wlcol=0,flcol=0,ercol=0,blzcol=0;
+//  int      *ord=NULL;
   char     comment[FLEN_COMMENT]="\0";
   char     date[FLEN_KEYWORD]="\0",time[FLEN_KEYWORD]="\0";
   char     *cptr;
@@ -129,7 +132,12 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
     if (fits_read_key(infits,TSTRING,"DEC",time,comment,&status))
       errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card %s\n\
 \tfrom FITS file %s.","DEC",spec->file);
-    spec->equ=2000.0; /* This is the default equinox */
+    if (fits_read_key(infits,TDOUBLE,"EQUINOX",&(spec->alt),comment,&status)) {
+      warnmsg("UVES_r2Dspec_pypeit(): Cannot read value of header card %s\n\
+\tfrom FITS file %s.\nAssuming EQUINOX=2000.0","EQUINOX",spec->file);
+      spec->equ=2000.0; /* This is the default equinox */
+      status=0;
+    }
   }
 
   /* Get exposure time */
@@ -197,6 +205,12 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
     if ((spec->or[i].res=darray(spec->or[i].np))==NULL)
       errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for resolution\n\
 \tarray of order %d of size %d for file\n\t%s",i+1,spec->or[i].np,spec->file);
+    if (par->thar<=1 && !norm) {
+      /* Allocate memory for matrix to hold blaze */
+      if ((blzfit=darray(spec->or[0].np))==NULL)
+        errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for blzfit\n\
+\tarray of size %d for file\n\t%s",spec->or[0].np,spec->file);
+    }
     if (par->thar==1) {
       if ((spec->or[i].th=darray(spec->or[i].np))==NULL)
 	errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for ThAr\n\
@@ -220,86 +234,68 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
     if (par->thar==1) for (j=0; j<spec->or[i].np; j++) spec->or[i].tst[j]=1;
   }
 
-  /* Get image dimensions */
-  if (fits_get_img_param(infits,9,&bitpix,&naxis,naxes,&status))
-    errormsg("UVES_r2Dspec_pypeit(): Couldn't get image dimensions for\n\
-\tfile %s",spec->file);
-  if (!naxis) errormsg("UVES_r2Dspec_pypeit(): Couldn't find input image extension\n\
-\tfor file %s",spec->file);
-  npix=naxes[0];
+  /* Get number of spectral pixels */
+  /*
+  if (fits_get_num_rows(infits, &npix, &status))
+    errormsg("UVES_r2Dspec_pypeit(): Couldn't determine number of spectral pixels for\n\
+\tfile %s",spec->file);*/
 
-  /* Read in flux information */
-  for (i=0,first=1; i<spec->nor; i++,first+=npix) {
+  /* PypeIt stores each order in a separate HDU, and each
+     HDU contains all wavelength, flux, error information.
+     Therefore, we will only loop over the HDUs once, reading in
+     all information for each order at a time. */
+  for (i=0; i<spec->nor; i++) {
+    badorder=false;
     /* Move to the HDU corresponding to this order */
-    if (fits_movabs_hdu(infits,i+1,&hdutype,&status))
+    if (fits_movabs_hdu(infits,i+2,&hdutype,&status))
       errormsg("UVES_r2Dspec_pypeit(): Cannot move to HDU %d in FITS file\n\
 \t%s",i+1,spec->file);
-    if (fits_read_img(infits,TDOUBLE,first,spec->or[i].np,&nulval,
-		      spec->or[i].fl,&anynul,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read flux array for order\n\
-\t%d in file\n\t%s",i+1,spec->file);
-  }
-
-  /** Next HDU assumed to contain error information **/
-  if (par->thar<=1) {
-    /* Move to next HDU */
-    if (fits_movrel_hdu(infits,1,&hdutype,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Could not move to second HDU\n\
-\tin file %s",spec->file);
-    /* Check HDU type */
-    if (hdutype!=IMAGE_HDU)
-      errormsg("UVES_r2Dspec_pypeit(): Second extension not a FITS image\n\
-\tin file\n\t%s",spec->file);
-    /* Get image dimensions */
-    if (fits_get_img_param(infits,9,&bitpix,&naxis,naxes,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Couldn't get image dimensions for\n\
-\tsecond HDU in file\n\t%s",spec->file);
-    if (!naxis) errormsg("UVES_r2Dspec_pypeit(): Couldn't find input image extension\n\
-\tfor second HDU in file\n\t%s",spec->file);
-    /* Check that image dimensions are the same as for the flux image */
-    if (naxes[0]!=npix || naxes[1]!=spec->nor)
-      errormsg("UVES_r2Dspec_pypeit(): Second extension has different\n\
-\tdimensions to first in file\n\t%s",spec->file);
+    if (hdutype!=BINARY_TBL)
+      errormsg("UVES_r2Dspec_pypeit(): Extension %d not a binary table\n\
+\tin file\n\t%s",i+1,spec->file);
+    if (fits_read_key(infits,TINT,"HIERARCH ECH_ORDER",&thisorder,comment,&status))
+        errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card\n\
+        \t%s from FITS file\n\t%s.","HIERARCH ECH_ORDER",spec->file);
+  /* Get the column number for all of the data arrays */
+    if (fits_get_colnum(infits, CASEINSEN, "OPT_WAVE", &wlcol, &status)) badorder=true;
+    if (fits_get_colnum(infits, CASEINSEN, "OPT_COUNTS", &flcol, &status)) badorder=true;
+    if (fits_get_colnum(infits, CASEINSEN, "OPT_COUNTS_SIG", &ercol, &status)) badorder=true;
+    warnmsg("TODO :: NEED TO IMPLEMENT BLAZE FUNCTION AND ThAr spectrum");
+    if (!norm && fits_get_colnum(infits, CASEINSEN, "OPT_COUNTS", &blzcol, &status)) badorder=true;
+    //if (fits_get_colnum(infits, CASEINSEN, "OPT_COUNTS_BLAZE", &blzcol, &status)) badorder=true;
+    /* Check if this is a bad order */
+    if (badorder) {
+      warnmsg("UVES_r2Dspec_pypeit(): Cannot find optimal extraction of order %d\n\
+\tin FITS file\n\t%s",thisorder,spec->file);
+        /* Mask all pixels in this order - it is bad */
+        spec->or[i].nuse=0;
+        for (j=0; j<spec->or[i].np; j++) spec->or[i].st[j]=RCLIP;
+        status=0;
+        continue;
+    }
+    /* If we make it to here, then we have found the columns for this order */
+    /* Read in flux information */
+    if (fits_read_col(infits,TDOUBLE,flcol,1,1,spec->or[i].np,&nulval,
+              spec->or[i].fl,&anynul,&status))
+      errormsg("UVES_r2Dspec_pypeit(): Cannot read flux array for order %d\n\
+\tin file\n\t%s",thisorder,spec->file);
     /* Read in error information */
-    for (i=0,first=1; i<spec->nor; i++,first+=npix) {
-      if (fits_read_img(infits,TDOUBLE,first,spec->or[i].np,&nulval,spec->or[i].er,
-			&anynul,&status))
-	errormsg("UVES_r2Dspec_pypeit(): Cannot read error array for order\n\
-\t%d in file\n\t%s",i+1,spec->file);
-      /* The HIRES_REDUX format uses variance, not sigma, so take sqrt here */
-      for (j=0; j<spec->or[i].np; j++)
-	spec->or[i].er[j]=(spec->or[i].er[j]>0.0) ? sqrt(spec->or[i].er[j]) : -INFIN;
-    }
+    if (fits_read_col(infits,TDOUBLE,ercol,1,1,spec->or[i].np,&nulval,
+              spec->or[i].er,&anynul,&status))
+      errormsg("UVES_r2Dspec_pypeit(): Cannot read error array for order %d\n\
+\tin file\n\t%s",thisorder,spec->file);
+    /* Read in vacuum wavelength information */
+    if (fits_read_col(infits,TDOUBLE,wlcol,1,1,spec->or[i].np,&nulval,
+              spec->or[i].wl,&anynul,&status))
+      errormsg("UVES_r2Dspec_pypeit(): Cannot read wavelength array for order %d\n\
+\tin file\n\t%s",thisorder,spec->file);
+    /* Read in the blaze information */
+    if (!norm && fits_read_col(infits,TDOUBLE,blzcol,1,1,spec->or[i].np,&nulval,
+              &blzfit[i],&anynul,&status))
+      errormsg("UVES_r2Dspec_pypeit(): Cannot read blaze array for order %d\n\
+\tin file\n\t%s",thisorder,spec->file);
   }
 
-  /** Next HDU assumed to contain wavelength information **/
-  if (par->thar<=1) {
-    /* Move to next HDU */
-    if (fits_movrel_hdu(infits,1,&hdutype,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Could not move to third HDU\n\
-\tin file %s",spec->file);
-    /* Check HDU type */
-    if (hdutype!=IMAGE_HDU)
-      errormsg("UVES_r2Dspec_pypeit(): Third extension not a FITS image\n\
-\tin file\n\t%s",spec->file);
-    /* Get image dimensions */
-    if (fits_get_img_param(infits,9,&bitpix,&naxis,naxes,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Couldn't get image dimensions for\n\
-\tthird HDU in file\n\t%s",spec->file);
-    if (!naxis) errormsg("UVES_r2Dspec_pypeit(): Couldn't find input image extension\n\
-\tfor third HDU in file\n\t%s",spec->file);
-    /* Check that image dimensions are the same as for the flux image */
-    if (naxes[0]!=npix || naxes[1]!=spec->nor)
-      errormsg("UVES_r2Dspec_pypeit(): Third extension has different\n\
-\tdimensions to first in file\n\t%s",spec->file);
-    /* Read in raw wavelength information */
-    for (i=0,first=1; i<spec->nor; i++,first+=npix) {
-      if (fits_read_img(infits,TDOUBLE,first,spec->or[i].np,&nulval,spec->or[i].wl,
-			&anynul,&status))
-	errormsg("UVES_r2Dspec_pypeit(): Cannot read wavelength array for order\n\
-\t%d in file\n\t%s",i+1,spec->file);
-    }
-  }
   /* Must treat the special case for PypeIt files where wavelengths are
      set to zero if there's no information from the chip at those
      wavelengths. At the moment, the fix is just to extrapolate the
@@ -316,81 +312,12 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
     for (k=j+1; k<spec->or[i].np; k++) spec->or[i].wl[k]=spec->or[i].wl[k-1]+dwl;
   }
 
-
-  /** When there's 5 HDU's, this next HDU should contain the extracted
-      flat-field flux (i.e. some measure of the blaze function) **/
-  if (par->thar<=1 && !norm) {
-    /* Move to next HDU */
-    if (fits_movrel_hdu(infits,1,&hdutype,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Could not move to fourth HDU\n\
-\tin file %s",spec->file);
-    /* Check HDU type */
-    if (hdutype!=IMAGE_HDU)
-      errormsg("UVES_r2Dspec_pypeit(): Fourth extension not a FITS image\n\
-\tin file\n\t%s",spec->file);
-    /* Get image dimensions */
-    if (fits_get_img_param(infits,9,&bitpix,&naxis,naxes,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Couldn't get image dimensions for\n\
-\tfourth HDU in file\n\t%s",spec->file);
-    if (!naxis) errormsg("UVES_r2Dspec_pypeit(): Couldn't find input image extension\n\
-\tfor fourth HDU in file\n\t%s",spec->file);
-    /* Check that image dimensions are the same as for the flux image */
-    if (naxes[0]!=npix || naxes[1]!=spec->nor)
-      errormsg("UVES_r2Dspec_pypeit(): Fourth extension has different\n\
-\tdimensions to first in file\n\t%s",spec->file);
-    /* Allocate memory for matrix to hold blaze */
-    if ((blz=dmatrix(spec->nor,spec->or[0].np))==NULL)
-      errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for blz\n\
-\tmatrix of size %dx%d for file\n\t%s",spec->nor,spec->or[0].np,spec->file);
-    /* Read in blaze information */
-    for (i=0,first=1; i<spec->nor; i++,first+=npix) {
-      if (fits_read_img(infits,TDOUBLE,first,spec->or[i].np,&nulval,blz[i],&anynul,
-			&status))
-	errormsg("UVES_r2Dspec_pypeit(): Cannot read blaze array for order\n\
-\t%d in file\n\t%s",i+1,spec->file);
-    }
-  }
-
   /* Close flux fits file */
   fits_close_file(infits,&status);
 
   /* If ThAr information is to be read in, do it now */
   if (par->thar==1) {
-    if (fits_open_file(&infits,UVES_replace_envinstr(spec->thfile),READONLY,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot open FITS file\n\t%s",spec->thfile);
-    /* Read in or, in this case, set archival filename */
-    sprintf(spec->tharfile,"%s",spec->abthfile);
-    /* Get modified julian day */
-    if (fits_read_key(infits,TDOUBLE,"MJD",&(spec->wc_jd),comment,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card %s\n\
-\tfrom FITS file %s.","MJD",spec->thfile);
-    /* Convert to Julian day */
-    spec->wc_jd+=2400000.5;
-    /* Find the temperature in each arm and the atmospheric pressure */
-    /* At the moment, these values are just set to arbitrary numbers */
-    spec->wc_temp=spec->wc_pres=-1.0;
-    /* Get image dimensions */
-    if (fits_get_img_param(infits,9,&bitpix,&naxis,naxes,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Couldn't get image dimensions for\n\
-\tfile %s",spec->thfile);
-    if (!naxis) errormsg("UVES_r2Dspec_pypeit(): Couldn't find input image\n\
-\textension for file\n\t%s",spec->thfile);
-    /* Some weak checks that this really is the right ThAr array */
-    if (naxes[0]!=npix)
-      errormsg("UVES_r2Dspec_pypeit(): Mismatch in array sizes between\n\
-\tflux and error files\n\t%s &\n\t%s",spec->file,spec->thfile);
-    if (naxes[1]!=spec->nor)
-      errormsg("UVES_r2Dspec_pypeit(): Mismatch in number of orders between\n\
-\tflux and error files\n\t%s &\n\t%s",spec->file,spec->thfile);
-    /* Read in ThAr information */
-    for (i=0,first=1; i<spec->nor; i++,first+=npix) {
-      if (fits_read_img(infits,TDOUBLE,first,spec->or[i].np,&nulval,spec->or[i].th,
-			&anynul,&status))
-	errormsg("UVES_r2Dspec_pypeit(): Cannot read ThAr flux array for order\n\
-\t%d in file\n\t%s",i+1,spec->thfile);
-    }
-    /* Close ThAr flux fits file */
-    fits_close_file(infits,&status);
+    errormsg("UVES_r2Dspec_pypeit(): ThAr information not yet implemented");
   }
 
   /* Set order identity numbers and parameters */
@@ -400,10 +327,10 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
     if (par->thar<=1) {
       for (spec->or[i].nuse=0,j=0; j<spec->or[i].np; j++) {
 	/* Have applied an upper threshold for errors here because
-	   HIREDUX doesn't apply a negative error bar to regions which
+	   PypeIt doesn't apply a negative error bar to regions which
 	   are extracted but which are known to contain no flux */
 	/* if (spec->or[i].er[j]>DRNDTOL) spec->or[i].nuse++; */
-	if (spec->or[i].er[j]>DRNDTOL && spec->or[i].er[j]<500.0) spec->or[i].nuse++;
+	if (spec->or[i].er[j]>DRNDTOL && spec->or[i].er[j]<5000.0) spec->or[i].nuse++;
 	else spec->or[i].st[j]=RCLIP;
 	if (par->thar==1 && spec->or[i].th[j]==0.0) spec->or[i].tst[j]=RCLIP;
       }
@@ -426,44 +353,22 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
     }
   }
 
-  /** Normalize by fits to the blaze function if necessary **/
+  /** Normalize by the blaze function if necessary **/
   if (par->thar<=1 && !norm) {
-    /* Allocate memory for matrix to hold blaze */
-    if ((blzfit=darray(spec->or[0].np))==NULL)
-      errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for blzfit\n\
-\tarray of size %d for file\n\t%s",spec->or[0].np,spec->file);
     /* Loop over orders and do the fits to the blaze function */
     for (i=0; i<spec->nor; i++) {
       /* Only operate on useful orders */
       if (spec->or[i].nuse>=MINUSE) {
-	/* Fit blaze function */
-	/*
-	if (!UVES_hirx_blzfit(&(spec->or[i]),&(blz[i][0]),
-			      10.0,3.0,25,5,0,0,blzfit)) {
-	  nferrormsg("UVES_r2Dspec_pypeit(): Error returned from UVES_hirx_blzfit()\n\
-\twhen attempting to fit blaze function of order %d of spectrum %d,\n\t%s",i+1,
-		     spec->id+1,spec->file); return 0;
-	}
-	*/
-	/* Find the running median of the blaze function */
-	if (!UVES_hirx_blzfit(&(spec->or[i]),&(blz[i][0]),0.0,3.0,51,2,0,1,blzfit)) {
-	  nferrormsg("UVES_r2Dspec_pypeit(): Error returned from UVES_hirx_blzfit()\n\
-\twhen attempting a running median on blaze function of order %d of\n\
-\tspectrum %d,\n\t%s",i+1,spec->id+1,spec->file); return 0;
-	}
-	/* Divide order by fit to the blaze */
-	for (j=0; j<spec->or[i].np; j++) {
-	  /*
-	  if (i==9) fprintf(stdout,"%lf  %lf  %lf  %lf  %lf  %d\n",spec->or[i].vhwl[j],spec->or[i].fl[j],spec->or[i].er[j],blz[i][j],blzfit[j],spec->or[i].st[j]);
-	  */
-	  if (spec->or[i].st[j]==1) {
-	    spec->or[i].fl[j]/=blzfit[j]; spec->or[i].er[j]/=blzfit[j];
-	  }
-	}
+        /* Divide order by fit to the blaze */
+  	    for (j=0; j<spec->or[i].np; j++) {
+          if (spec->or[i].st[j]==1) {
+            spec->or[i].fl[j]/=blzfit[j]; spec->or[i].er[j]/=blzfit[j];
+	      }
+	    }
       }
     }
     /* Clean up */
-    free(blzfit); free(*blz); free(blz);
+    free(blzfit);
   }
 
   /* Read in the polynomial wavelength solutions from the extracted ThAr file.
@@ -472,160 +377,7 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
      above. Indeed, above we read in the wavelength scale directly, not via
      polynomials like below */
   if (par->thar==2) {
-    /* Attempt to open wavelength solution fits file */
-    if (fits_open_file(&infits,UVES_replace_envinstr(spec->wlfile),READONLY,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot open FITS file\n\t%s",spec->wlfile);
-    /* Check number of HDUs */
-    if (fits_get_num_hdus(infits,&hdunum,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot find number of HDUs in file\n\
-\t%s",spec->wlfile);
-    if (hdunum!=3)
-      errormsg("UVES_r2Dspec_pypeit(): Number of HDUs is %d instead of %d\n\
-\tin file %s",hdunum,spec->nor+1,spec->wlfile);
-    /* Move to next HDU */
-    if (fits_movrel_hdu(infits,1,&hdutype,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Could not move to second HDU\n\
-\tin file %s",spec->wlfile);
-    /* Check HDU type */
-    if (hdutype!=BINARY_TBL)
-      errormsg("UVES_r2Dspec_pypeit(): Extension %d not a binary table\n\
-\tin file\n\t%s",2,spec->wlfile);
-    /* Chebyshev coefficients for each echelle order need to be
-       constructed from 2D fit coefficients */
-    /* Find number of axes to be read in */
-    if (fits_get_num_cols(infits,&naxis,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read number of columns\n\
-\t%s in FITS file\n\t%s.","TFIELDS",spec->wlfile);
-    if (naxis!=5) errormsg("UVES_r2Dspec_pypeit(): The binary table in file\n\t%s\n\
-\thas %d columns. It should have 5",spec->wlfile,naxis);
-    /* Find number of rows to be read in */
-    if (fits_get_num_rows(infits,&nrows,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read number of rows\n\
-\t%s in FITS file\n\t%s.","NAXIS2",spec->wlfile);
-    if (nrows!=1) errormsg("UVES_r2Dspec_pypeit(): The binary table in file\n\t%s\n\
-\thas %d rows. It should have 1",spec->wlfile,nrows);
-    /* Find and read in the normalizing coefficients
-       for the dispersion direction */
-    if (fits_get_colnum(infits,CASEINSEN,"NRM",&col,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot find column named '%s'\n\
-\tin binary table in FITS file\n\t%s","NRM",spec->wlfile);
-    if (fits_read_col(infits,TDOUBLE,col,1,1,2,&nulval,&(spec->or[0].wpol[NWPOL-2]),
-		      &anynul,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read column '%s'\n\
-\tin binary table in FITS file\n\t%s","NRM",spec->wlfile);
-    /* Write these values into last elements of all echelle orders' wpol arrays */
-    for (i=1; i<spec->nor; i++) {
-      spec->or[i].wpol[NWPOL-2]=spec->or[0].wpol[NWPOL-2];
-      spec->or[i].wpol[NWPOL-1]=spec->or[0].wpol[NWPOL-1];
-    }
-    /* Find and read in the normalizing coefficients for the spatial
-       (order) dierction */
-    if (fits_get_colnum(infits,CASEINSEN,"NRMT",&col,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot find column named '%s'\n\
-\tin binary table in FITS file\n\t%s","NRMT",spec->wlfile);
-    if (fits_read_col(infits,TDOUBLE,col,1,1,2,&nulval,nrmt,&anynul,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read column '%s'\n\
-\tin binary table in FITS file\n\t%s","NRMT",spec->wlfile);
-    /* Find and read in the order of the Legendre polynomial fit in the
-       dispersion direction */
-    if (fits_get_colnum(infits,CASEINSEN,"NY",&col,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot find column named '%s'\n\
-\tin binary table in FITS file\n\t%s","NY",spec->wlfile);
-    if (fits_read_col(infits,TINT,col,1,1,1,&nulval,&(spec->or[0].nwpol),&anynul,
-		      &status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read column '%s'\n\
-\tin binary table in FITS file\n\t%s","NY",spec->wlfile);
-    /* Write this value into all echelle orders */
-    for (i=1; i<spec->nor; i++) spec->or[i].nwpol=spec->or[0].nwpol;
-    /* Find and read in the order of the Legendre polynomial fit in the
-       spatial direction */
-    if (fits_get_colnum(infits,CASEINSEN,"NO",&col,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot find column named '%s'\n\
-\tin binary table in FITS file\n\t%s","NO",spec->wlfile);
-    if (fits_read_col(infits,TINT,col,1,1,1,&nulval,&No,&anynul,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read column '%s'\n\
-\tin binary table in FITS file\n\t%s","NO",spec->wlfile);
-    /* Make sure wpol arrays are big enough to handle this number of
-       coefficients */
-    if (NWPOL<spec->or[0].nwpol+2)
-      errormsg("UVES_r2Dspec_pypeit(): Order of wavelength calibration\n\
-\tpolynomial in spectral direction (=%d) must be <= NWPOL-2=%d for\n	\
-\tHIRES REDUX data. Try increasing NWPOL to %d and recompiling",spec->or[0].nwpol,
-	       NWPOL-2,spec->or[0].nwpol+2);
-    /* Find and read in the coefficient matrix */
-    if (fits_get_colnum(infits,CASEINSEN,"RES",&col,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot find column named '%s'\n\
-\tin binary table in FITS file\n\t%s","RES",spec->wlfile);
-    if (fits_get_coltype(infits,col,&i,&(naxes[0]),&(naxes[1]),&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot find type of column\n\
-\tnamed '%s' in binary table in FITS file\n\t%s","RES",spec->wlfile);
-    if (naxes[0]!=spec->or[0].nwpol*No)
-      errormsg("UVES_r2Dspec_pypeit(): Size of coefficient matrix (=%d)\n\
-\tdoes not equal polynomial order in dispersion x spatial\n	       \
-\tdirection, %dx%d, in binary table in FITS file\n\t%s",naxes[0],
-	       spec->or[0].nwpol,No,spec->wlfile);
-    /* Allocate memory for coefficient array */
-    if ((coeff=darray(naxes[0]))==NULL)
-      errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for coeff\n\
-\tarray of size %d",naxes[0]+1);
-    if (fits_read_col(infits,TDOUBLE,col,1,1,naxes[0],&nulval,coeff,&anynul,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read column '%s'\n\
-\tin binary table in FITS file\n\t%s","RES",spec->wlfile);
-    /* Diffraction order numbers contained in the next HDU */
-    /* Move to next HDU */
-    if (fits_movrel_hdu(infits,1,&hdutype,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Could not move to third HDU\n\
-\tin file %s",spec->wlfile);
-    /* Check HDU type */
-    if (hdutype!=BINARY_TBL)
-      errormsg("UVES_r2Dspec_pypeit(): Extension %d not a binary table\n\
-\tin file\n\t%s",i+1,spec->wlfile);
-    /* Find number of axes to be read in */
-    if (fits_get_num_cols(infits,&naxis,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read number of columns\n\
-\t%s in FITS file\n\t%s.","NAXIS2",spec->wlfile);
-    /* Find number of rows to be read in */
-    if (fits_get_num_rows(infits,&nrows,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read number of rows\n\
-\t%s in FITS file\n\t%s.","NAXIS2",spec->wlfile);
-    if (nrows!=spec->nor)
-      errormsg("UVES_r2Dspec_pypeit(): Second binary table in file\n\t%s\n\
-\thas %d rows. It should be equal to the number of echelle orders, %d\n	\
-\tin this case",spec->wlfile,nrows,spec->nor);
-    /* Allocate memory for order number array */
-    if ((ord=iarray(nrows))==NULL)
-      errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for ord\n\
-\tarray of size %d",nrows);
-    /* Find and read in the diffraction order numbers */
-    if (fits_get_colnum(infits,CASEINSEN,"ORDER",&col,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot find column named '%s'\n\
-\tin binary table in FITS file\n\t%s","ORDER",spec->wlfile);
-    if (fits_read_col(infits,TINT,col,1,1,nrows,&nulval,ord,&anynul,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read column '%s'\n\
-\tin binary table in FITS file\n\t%s","ORDER",spec->wlfile);
-    /* Allocate memory for Legendre coefficients */
-    if ((coeffo=darray(No))==NULL)
-      errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for coeffo\n\
-\tarray of size %d",No);
-    /* Generate Legendre coefficients for single orders from 2D fit coefficients */
-    for (i=0; i<spec->nor; i++) {
-      /* Normalize order number */
-      onorm=2.0*((double)ord[i]-nrmt[0])/nrmt[1];
-      if (!svdfit_legendre(onorm,coeffo,No))
-	errormsg("UVES_r2Dspec_pypeit(): Error returned from svdfit_legendre()\n\
-\twhen calculating coefficients for order %d of file\n\t%s",i+1,spec->wlfile);
-      /* Loop to generate the j'th Legendre coefficient for this order */
-      for (j=0; j<spec->or[i].nwpol; j++) {
-	/* Sum of products of coefficient matrix elements and Legendre series */
-	for (k=No-1,spec->or[i].wpol[j]=0.0; k>=0; k--)
-	  spec->or[i].wpol[j]+=coeff[j*No+k]*coeffo[k];
-	spec->or[i].wpol[j]/=(double)ord[i];
-      }
-    }
-    /* Clean up */
-    free(coeff); free(coeffo); free(ord);
-    /* Close wavelength solution fits file */
-    fits_close_file(infits,&status);
+    errormsg("UVES_r2Dspec_pypeit(): ThAr information not yet implemented");
   }
 
   /* Set median resolution to zero for lack of any other information */
