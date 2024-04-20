@@ -15,7 +15,7 @@
 int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
 
   double   hour=0.0,min=0.0,sec=0.0,onorm=0.0;
-  double   nulval=0.0;
+  double   nulval=0.0,tmpvhel=0.0;
   double   nrmt[2];
   double   dwl=0.0;
   double   *blzfit=NULL;
@@ -42,20 +42,14 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
   if (hdutype!=IMAGE_HDU)
     errormsg("UVES_r2Dspec_pypeit(): File not a FITS image: %s",spec->file);
 
-  /* Check number of HDUs */
+  /* Get the number of HDUs */
   if (fits_get_num_hdus(infits,&hdunum,&status))
     errormsg("UVES_r2Dspec_pypeit(): Cannot find number of HDUs in file\n\
 \t%s",spec->file);
-  if (par->thar<=1) {
-    if (hdunum==4) norm=1;
-    else if (hdunum==5) norm=0;
-    else errormsg("UVES_r2Dspec_pypeit(): Number of HDUs is %d but it\n\
-\tmust be either %d or %d in file\n\t%s",hdunum,4,5,spec->file);
-  }
 
   /* Get object name */
   if (par->thar<=1) {
-    if (fits_read_key(infits,TSTRING,"OBJECT",spec->obj,comment,&status))
+    if (fits_read_key(infits,TSTRING,"TARGET",spec->obj,comment,&status))
       errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card \n\
 \t%s from FITS file\n\t%s.","OBJECT",spec->file);
   } else sprintf(spec->obj,"thar_wav");
@@ -95,53 +89,47 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
     /* Convert to Julian day */
     spec->jd+=2400000.5;
     /* Get date of observation and convert to year, month and day */
-    if (fits_read_key(infits,TSTRING,"DATE-OBS",date,comment,&status))
+    if (fits_read_key(infits,TSTRING,"DATETIME",date,comment,&status))
       errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card %s\n\
-\tfrom FITS file %s.","DATE-OBS",spec->file);
+\tfrom FITS file %s.","DATETIME",spec->file);
     if (strlen(date)>10) {
       /* This means that the UT is appended to the date */
       if (sscanf(date,"%d-%d-%dT%lf:%lf:%lf",&(spec->year),&(spec->month),
 		 &(spec->day),&hour,&min,&sec)!=6)
 	errormsg("UVES_r2Dspec_pypeit(): Cannot read format of keyword\n\
-%s=%s in FITS file\n\t%s","DATE-OBS",date,spec->file);
+%s=%s in FITS file\n\t%s","DATETIME",date,spec->file);
       /* Convert hours, mins and secs into the UT */
       spec->ut=sec/3600.0+min/60.0+hour;
     } else {
       /* Only the date should be given */
       if (sscanf(date,"%d-%d-%d",&(spec->year),&(spec->month),&(spec->day))!=3)
 	errormsg("UVES_r2Dspec_pypeit(): Cannot read format of keyword\n\
-\t%s=%s in FITS file\n\t%s","DATE-OBS",date,spec->file);
-      /* Get universal time from UTC */ 
-      if (fits_read_key(infits,TSTRING,"UTC",time,comment,&status))
-	errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card\n\
-\t%s from FITS file\n\t%s.","UTC",spec->file);
+\t%s=%s in FITS file\n\t%s","DATETIME",date,spec->file);
       /* Convert to hours */
       if (!UVES_hex2dec(time,&(spec->ut)))
 	errormsg("UVES_r2Dspec_pypeit(): Cannot read format of keyword\n\
 \t%s=%s in FITS file\n\t%s","UTC",time,spec->file);
     }
     /* Get latitude, longitude and altitude of observatory */
-    /* At the moment, these are hard-coded assuming that we really are
-       dealing with Keck/HIRES data */
-    spec->lat=19.8259; spec->lon=155.4751; spec->alt=4160.0;
-    /* Get object RA and DEC and equinox */
+    if (fits_read_key(infits,TDOUBLE,"LAT-OBS",&(spec->lat),comment,&status))
+      errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card\n\
+\t%s from FITS file\n\t%s.","LAT-OBS",spec->file);
+    if (fits_read_key(infits,TDOUBLE,"LON-OBS",&(spec->lon),comment,&status))
+      errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card\n\
+\t%s from FITS file\n\t%s.","LON-OBS",spec->file);
+    if (fits_read_key(infits,TDOUBLE,"ALT-OBS",&(spec->alt),comment,&status))
+      errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card\n\
+\t%s from FITS file\n\t%s.","ALT-OBS",spec->file);
+    /* Get object RA, DEC (both in decimal degrees) and equinox */
     if (fits_read_key(infits,TSTRING,"RA",time,comment,&status))
       errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card %s\n\
 \tfrom FITS file %s.","RA",spec->file);
     /* Convert RA into hours */
-    if (!UVES_hex2dec(time,&(spec->ra)))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read format of keyword\n\
-\t%s=%s in FITS file\n\t%s","RA",time,spec->file);
+    spec->ra/=15.0;
     if (fits_read_key(infits,TSTRING,"DEC",time,comment,&status))
       errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card %s\n\
 \tfrom FITS file %s.","DEC",spec->file);
-    /* Convert to degrees */
-    if (!UVES_hex2dec(time,&(spec->dec)))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read format of keyword\n\
-%s=%s in FITS file\n\t%s","DEC",time,spec->file);
-    if (fits_read_key(infits,TDOUBLE,"EQUINOX",&(spec->equ),comment,&status))
-      warnmsg("UVES_r2Dspec_pypeit(): Cannot read value of header card\n\
-\t%s from FITS file\n\t%s.\n\tAssuming equinox = 2000.0","EQUINOX",spec->file);
+    spec->equ=2000.0; /* This is the default equinox */
   }
 
   /* Get exposure time */
@@ -149,34 +137,45 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
     errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card %s\n\
 \tfrom FITS file %s.","EXPTIME",spec->file);
 
-  /* Read heliocentric velicity correction */
-  /* Note: HIRES REDUX files are assumed to have already been
+  /* Get number of echelle orders & allocate memory for echelle order array */
+  if (fits_read_key(infits,TINT,"NSPEC",&(spec->nor),comment,&status))
+    errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card\n\
+\t%s from FITS file\n\t%s.","NSPEC",spec->file);
+  if (!(spec->or=(echorder *)malloc((size_t)(spec->nor*sizeof(echorder)))))
+    errormsg("Could not allocate memory for echelle order array of size %d",
+	     spec->nor);
+
+  /* For PypeIt files, we now need to advance to the first HDU, where the
+     extracted spectra (and some relevant header cards) are stored */
+    if (fits_movabs_hdu(infits,2,&hdutype,&status))
+      errormsg("UVES_r2Dspec_pypeit(): Cannot move to second HDU in FITS file\n\
+\t%s",spec->file);
+
+  /* Read heliocentric velocity correction */
+  /* Note: PypeIt files are assumed to have already been
      corrected to the vacuum-heliocentric frame. However, if
      atmospheric lines are to be masked out by the user, then this
      needs to be done in the observer's frame, so the masked regions
      need to have the same heliocentric correction applied to them as
      the input spectra have */
-  if (fits_read_key(infits,TDOUBLE,"HELVEL",&(spec->vhel),comment,&status))
+  if (fits_read_key(infits,TDOUBLE,"VEL_CORR",&tmpvhel,comment,&status))
     errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card %s\n\
-\tfrom FITS file %s.","HELVEL",spec->file);
-
-  /* Get number of echelle orders & allocate memory for echelle order array */
-  if (fits_read_key(infits,TINT,"NAXIS2",&(spec->nor),comment,&status))
-    errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card\n\
-\t%s from FITS file\n\t%s.","NAXIS2",spec->file);
-  if (!(spec->or=(echorder *)malloc((size_t)(spec->nor*sizeof(echorder)))))
-    errormsg("Could not allocate memory for echelle order array of size %d",
-	     spec->nor);
+\tfrom FITS file %s.","VEL_CORR",spec->file);
+  spec->vhel=(tmpvhel-1.0)*299792.458;
 
   /* Find number of pixels to read in for each order */
-  if (fits_read_key(infits,TINT,"NAXIS1",&(spec->or[0].np),comment,&status))
+  if (fits_read_key(infits,TINT,"NAXIS2",&(spec->or[0].np),comment,&status))
     errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card\n\
-\t%s from FITS file\n\t%s.","NAXIS1",spec->file);
+\t%s from FITS file\n\t%s.","NAXIS2",spec->file);
   for (i=1; i<spec->nor; i++) spec->or[i].np=spec->or[0].np;
 
   /* Allocate memory for data arrays and fill wavelength, flux arrays */
   for (i=0; i<spec->nor; i++) {
-    /* Unlike most other instruments/pipelines, MAGE files have
+    /* Move to the HDU corresponding to this order */
+    if (fits_movabs_hdu(infits,i+2,&hdutype,&status))
+      errormsg("UVES_r2Dspec_pypeit(): Cannot move to HDU %d in FITS file\n\
+\t%s",i+1,spec->file);
+    /* Unlike most other instruments/pipelines, PypeIt files have
        an actual wavelength array to be read in, so allocate memory
        for the raw wavelength array first */
     if ((spec->or[i].wl=darray(spec->or[i].np))==NULL)
@@ -231,6 +230,10 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
 
   /* Read in flux information */
   for (i=0,first=1; i<spec->nor; i++,first+=npix) {
+    /* Move to the HDU corresponding to this order */
+    if (fits_movabs_hdu(infits,i+1,&hdutype,&status))
+      errormsg("UVES_r2Dspec_pypeit(): Cannot move to HDU %d in FITS file\n\
+\t%s",i+1,spec->file);
     if (fits_read_img(infits,TDOUBLE,first,spec->or[i].np,&nulval,
 		      spec->or[i].fl,&anynul,&status))
       errormsg("UVES_r2Dspec_pypeit(): Cannot read flux array for order\n\
@@ -297,7 +300,7 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
 \t%d in file\n\t%s",i+1,spec->file);
     }
   }
-  /* Must treat the special case for HIRX files where wavelengths are
+  /* Must treat the special case for PypeIt files where wavelengths are
      set to zero if there's no information from the chip at those
      wavelengths. At the moment, the fix is just to extrapolate the
      wavelength scale from valid sections of each order out to the
