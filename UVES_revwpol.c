@@ -2,7 +2,7 @@
 * Given a vaccum-heliocentric wavelength, calculate the value of the
 * pixel index (double) which gives the corresponding
 * air-wavelength. Function returns the double valued pixel index. This
-* value is determined by knowledge of the vac-helio wavelenegths
+* value is determined by knowledge of the vac-helio wavelengths
 * corresponding to several (NINTP) positions along the pixel of
 * interest (idx) and by using polynomial interpolation to derive more
 * precise value.

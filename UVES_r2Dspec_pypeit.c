@@ -282,6 +282,13 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
               spec->or[i].er,&anynul,&status))
       errormsg("UVES_r2Dspec_pypeit(): Cannot read error array for order %d\n\
 \tin file\n\t%s",thisorder,spec->file);
+    /* Any zero values will be assigned -INFIN and marked as clipped during reading */
+    for (j=0; j<spec->or[i].np; j++) {
+      if (spec->or[i].er[j]<=0.0) {
+        spec->or[i].st[j]=RCLIP;
+        spec->or[i].er[j]=-INFIN;
+      }
+    }
     /* Read in vacuum wavelength information */
     if (fits_read_col(infits,TDOUBLE,wlcol,1,1,spec->or[i].np,&nulval,
               spec->or[i].wl,&anynul,&status))
