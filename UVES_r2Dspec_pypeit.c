@@ -381,7 +381,6 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
 
   /* Make sure this spectrum will be combined into combined spectrum later */
   spec->comb=1;
-  warnmsg("total successful");
   return 1;
 
 }
