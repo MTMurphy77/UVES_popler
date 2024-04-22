@@ -207,7 +207,7 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
 \tarray of order %d of size %d for file\n\t%s",i+1,spec->or[i].np,spec->file);
     if (par->thar<=1 && !norm) {
       /* Allocate memory for matrix to hold blaze */
-      if ((blzfit=darray(spec->or[0].np))==NULL)
+      if ((blzfit=darray(spec->or[i].np))==NULL)
         errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for blzfit\n\
 \tarray of size %d for file\n\t%s",spec->or[0].np,spec->file);
     }
@@ -294,12 +294,21 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
               spec->or[i].wl,&anynul,&status))
       errormsg("UVES_r2Dspec_pypeit(): Cannot read wavelength array for order %d\n\
 \tin file\n\t%s",thisorder,spec->file);
-    /* Read in the blaze information */
-    if (!norm && fits_read_col(infits,TDOUBLE,blzcol,1,1,spec->or[i].np,&nulval,
-              &blzfit[i],&anynul,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read blaze array for order %d\n\
-\tin file\n\t%s",thisorder,spec->file);
+  /** Normalize by the blaze function if necessary **/
+    if (par->thar<=1 && !norm) {
+      /* Only operate on useful orders */
+      if (spec->or[i].nuse>=MINUSE) {
+        /* Divide order by fit to the blaze */
+        for (j=0; j<spec->or[i].np; j++) {
+          if (spec->or[i].st[j]==1) {
+            spec->or[i].fl[j]/=blzfit[j]; spec->or[i].er[j]/=blzfit[j];
+          }
+        }
+      }
+    }
   }
+  /* Clean up */
+  free(blzfit);
 
   /* Must treat the special case for PypeIt files where wavelengths are
      set to zero if there's no information from the chip at those
@@ -358,24 +367,6 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
     }
   }
 
-  /** Normalize by the blaze function if necessary **/
-  if (par->thar<=1 && !norm) {
-    /* Loop over orders and do the fits to the blaze function */
-    for (i=0; i<spec->nor; i++) {
-      /* Only operate on useful orders */
-      if (spec->or[i].nuse>=MINUSE) {
-        /* Divide order by fit to the blaze */
-  	    for (j=0; j<spec->or[i].np; j++) {
-          if (spec->or[i].st[j]==1) {
-            spec->or[i].fl[j]/=blzfit[j]; spec->or[i].er[j]/=blzfit[j];
-	      }
-	    }
-      }
-    }
-    /* Clean up */
-    free(blzfit);
-  }
-
   /* Read in the polynomial wavelength solutions from the extracted ThAr file.
      The ThAr information in this file is extracted differently to the flux and
      so the wavelength polynomials do not apply to the flux and error arrays
@@ -390,7 +381,7 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
 
   /* Make sure this spectrum will be combined into combined spectrum later */
   spec->comb=1;
-
+  warnmsg("total successful");
   return 1;
 
 }
