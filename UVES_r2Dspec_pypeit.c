@@ -21,7 +21,7 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
   double   dwl=0.0;
   double   *blzfit=NULL;
 //  double   *coeff=NULL,*coeffo=NULL;
-  bool     badorder=false;
+  bool     badorder=false,longslit=false;
 //  long     nrows=0,No=0;
 //  long     naxes[9]={0,0,0,0,0,0,0,0,0};
 //  int      col=0,naxis=0;
@@ -30,6 +30,8 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
   int      thisorder=0,norm=0;
   int      wlcol=0,flcol=0,ercol=0,blzcol=0;
 //  int      *ord=NULL;
+  char*    slitstr="\0";
+  char     pypeline[FLEN_KEYWORD]="Echelle";
   char     comment[FLEN_COMMENT]="\0";
   char     date[FLEN_KEYWORD]="\0",time[FLEN_KEYWORD]="\0";
   char     *cptr;
@@ -85,6 +87,14 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
   spec->binx=spec->biny=-1;
 
   if (par->thar<=1) {
+    /* Determine the pipeline that was used to reduce the data */
+    if (fits_read_key(infits,TSTRING,"PYPELINE",&pypeline,comment,&status))
+      errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card %s\n\
+\tfrom FITS file %s.","PYPELINE",spec->file);
+    if (strcmp(pypeline,"MultiSlit")==0)
+      longslit=true;
+    slitstr = longslit ? "spectrum" : "echelle order";
+
     /* Get modified julian day */
     if (fits_read_key(infits,TDOUBLE,"MJD",&(spec->jd),comment,&status))
       errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card %s\n\
@@ -150,8 +160,8 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
     errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card\n\
 \t%s from FITS file\n\t%s.","NSPEC",spec->file);
   if (!(spec->or=(echorder *)malloc((size_t)(spec->nor*sizeof(echorder)))))
-    errormsg("Could not allocate memory for echelle order array of size %d",
-	     spec->nor);
+    errormsg("Could not allocate memory for %s array of size %d",
+	     slitstr, spec->nor);
 
   /* For PypeIt files, we now need to advance to the first HDU, where the
      extracted spectra (and some relevant header cards) are stored */
@@ -188,45 +198,45 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
        for the raw wavelength array first */
     if ((spec->or[i].wl=darray(spec->or[i].np))==NULL)
       errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for raw wavel.\n\
-\tarray of order %d of size %d for file\n\t%s",i+1,spec->or[i].np,spec->file);
+\tarray of %s %d of size %d for file\n\t%s",slitstr,i+1,spec->or[i].np,spec->file);
     if ((spec->or[i].vhwl=darray(spec->or[i].np))==NULL)
       errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for vac. wavel.\n\
-\tarray of order %d of size %d for file\n\t%s",i+1,spec->or[i].np,spec->file);
+\tarray of %s %d of size %d for file\n\t%s",slitstr,i+1,spec->or[i].np,spec->file);
     if ((spec->or[i].vhrwl=darray(spec->or[i].np))==NULL)
       errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for right-edge\n\
-\tvac-wavel. array of order %d of size %d for file\n\t%s",i+1,spec->or[i].np,
+\tvac-wavel. array of %s %d of size %d for file\n\t%s",slitstr,i+1,spec->or[i].np,
 	       spec->file);
     if ((spec->or[i].fl=darray(spec->or[i].np))==NULL)
       errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for flux\n\
-\tarray of order %d of size %d for file\n\t%s",i+1,spec->or[i].np,spec->file);
+\tarray of %s %d of size %d for file\n\t%s",slitstr,i+1,spec->or[i].np,spec->file);
     if ((spec->or[i].er=darray(spec->or[i].np))==NULL)
       errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for error\n\
-\tarray of order %d of size %d for file\n\t%s",i+1,spec->or[i].np,spec->file);
+\tarray of %s %d of size %d for file\n\t%s",slitstr,i+1,spec->or[i].np,spec->file);
     if ((spec->or[i].res=darray(spec->or[i].np))==NULL)
       errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for resolution\n\
-\tarray of order %d of size %d for file\n\t%s",i+1,spec->or[i].np,spec->file);
+\tarray of %s %d of size %d for file\n\t%s",slitstr,i+1,spec->or[i].np,spec->file);
     if (par->thar<=1 && !norm) {
       /* Allocate memory for matrix to hold blaze */
       if ((blzfit=darray(spec->or[i].np))==NULL)
-        errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for blzfit\n\
+        errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for blaze function\n\
 \tarray of size %d for file\n\t%s",spec->or[0].np,spec->file);
     }
     if (par->thar==1) {
       if ((spec->or[i].th=darray(spec->or[i].np))==NULL)
 	errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for ThAr\n\
-\tflux array of order %d of size %d for file\n\t%s",i+1,spec->or[i].np,spec->file);
+\tflux array of %s %d of size %d for file\n\t%s",slitstr,i+1,spec->or[i].np,spec->file);
       if ((spec->or[i].ter=darray(spec->or[i].np))==NULL)
 	errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for ThAr\n\
-\terror array of order %d of size %d for file\n\t%s",i+1,spec->or[i].np,
+\terror array of %s %d of size %d for file\n\t%s",slitstr,i+1,spec->or[i].np,
 		 spec->file);
     }
     if ((spec->or[i].st=iarray(spec->or[i].np))==NULL)
       errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for status\n\
-\tarray of order %d of size %d for file\n\t%s",i+1,spec->or[i].np,spec->file);
+\tarray of %s %d of size %d for file\n\t%s",slitstr,i+1,spec->or[i].np,spec->file);
     if (par->thar==1) {
       if ((spec->or[i].tst=iarray(spec->or[i].np))==NULL)
 	errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for ThAr status\n\
-\tarray of order %d of size %d for file\n\t%s",i+1,spec->or[i].np,spec->file);
+\tarray of %s %d of size %d for file\n\t%s",slitstr,i+1,spec->or[i].np,spec->file);
     }
 
     /* Initialise status array */
@@ -253,9 +263,12 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
     if (hdutype!=BINARY_TBL)
       errormsg("UVES_r2Dspec_pypeit(): Extension %d not a binary table\n\
 \tin file\n\t%s",i+1,spec->file);
-    if (fits_read_key(infits,TINT,"HIERARCH ECH_ORDER",&thisorder,comment,&status))
+    if (longslit) thisorder=i+1;
+    else {
+      if (fits_read_key(infits,TINT,"HIERARCH ECH_ORDER",&thisorder,comment,&status))
         errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card\n\
-        \t%s from FITS file\n\t%s.","HIERARCH ECH_ORDER",spec->file);
+\t%s from FITS file\n\t%s.","HIERARCH ECH_ORDER",spec->file);
+    }
   /* Get the column number for all of the data arrays */
     if (fits_get_colnum(infits, CASEINSEN, "OPT_WAVE", &wlcol, &status)) badorder=true;
     if (fits_get_colnum(infits, CASEINSEN, "OPT_COUNTS", &flcol, &status)) badorder=true;
@@ -263,8 +276,8 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
     if (!norm && fits_get_colnum(infits, CASEINSEN, "OPT_BLAZE", &blzcol, &status)) badorder=true;
     /* Check if this is a bad order */
     if (badorder) {
-      warnmsg("UVES_r2Dspec_pypeit(): Cannot find optimal extraction of order %d\n\
-\tin FITS file\n\t%s",thisorder,spec->file);
+      warnmsg("UVES_r2Dspec_pypeit(): Cannot find optimal extraction of %s %d\n\
+\tin FITS file\n\t%s",slitstr,thisorder,spec->file);
         /* Mask all pixels in this order - it is bad */
         spec->or[i].nuse=0;
         for (j=0; j<spec->or[i].np; j++) spec->or[i].st[j]=RCLIP;
@@ -275,13 +288,13 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
     /* Read in flux information */
     if (fits_read_col(infits,TDOUBLE,flcol,1,1,spec->or[i].np,&nulval,
               spec->or[i].fl,&anynul,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read flux array for order %d\n\
-\tin file\n\t%s",thisorder,spec->file);
+      errormsg("UVES_r2Dspec_pypeit(): Cannot read flux array for %s %d\n\
+\tin file\n\t%s",slitstr,thisorder,spec->file);
     /* Read in error information */
     if (fits_read_col(infits,TDOUBLE,ercol,1,1,spec->or[i].np,&nulval,
               spec->or[i].er,&anynul,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read error array for order %d\n\
-\tin file\n\t%s",thisorder,spec->file);
+      errormsg("UVES_r2Dspec_pypeit(): Cannot read error array for %s %d\n\
+\tin file\n\t%s",slitstr,thisorder,spec->file);
     /* Any zero values will be assigned -INFIN and marked as clipped during reading */
     for (j=0; j<spec->or[i].np; j++) {
       if (spec->or[i].er[j]<=0.0) {
@@ -292,18 +305,18 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
     /* Read in vacuum wavelength information */
     if (fits_read_col(infits,TDOUBLE,wlcol,1,1,spec->or[i].np,&nulval,
               spec->or[i].wl,&anynul,&status))
-      errormsg("UVES_r2Dspec_pypeit(): Cannot read wavelength array for order %d\n\
-\tin file\n\t%s",thisorder,spec->file);
+      errormsg("UVES_r2Dspec_pypeit(): Cannot read wavelength array for %s %d\n\
+\tin file\n\t%s",slitstr,thisorder,spec->file);
+    /* Read in the blaze information */
+    if (fits_read_col(infits,TDOUBLE,blzcol,1,1,spec->or[i].np,&nulval,
+              blzfit,&anynul,&status))
+      errormsg("UVES_r2Dspec_pypeit(): Cannot read wavelength array for %s %d\n\
+\tin file\n\t%s",slitstr,thisorder,spec->file);
   /** Normalize by the blaze function if necessary **/
     if (par->thar<=1 && !norm) {
       /* Only operate on useful orders */
-      if (spec->or[i].nuse>=MINUSE) {
-        /* Divide order by fit to the blaze */
-        for (j=0; j<spec->or[i].np; j++) {
-          if (spec->or[i].st[j]==1) {
-            spec->or[i].fl[j]/=blzfit[j]; spec->or[i].er[j]/=blzfit[j];
-          }
-        }
+      for (j=0; j<spec->or[i].np; j++) {
+        spec->or[i].fl[j]/=blzfit[j]; spec->or[i].er[j]/=blzfit[j];
       }
     }
   }
