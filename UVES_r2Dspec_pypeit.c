@@ -179,7 +179,8 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
   if (fits_read_key(infits,TDOUBLE,"VEL_CORR",&tmpvhel,comment,&status))
     errormsg("UVES_r2Dspec_pypeit(): Cannot read value of header card %s\n\
 \tfrom FITS file %s.","VEL_CORR",spec->file);
-  spec->vhel=(tmpvhel-1.0)*299792.458;
+  //spec->vhel=(tmpvhel-1.0)*299792.458;
+  spec->vhel=0; /* Set the correction to zero, as the frames are already in the heliocentric frame */
 
   /* Find number of pixels to read in for each order */
   if (fits_read_key(infits,TINT,"NAXIS2",&(spec->or[0].np),comment,&status))
