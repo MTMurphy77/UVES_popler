@@ -174,8 +174,8 @@
 #define FTIESI        8      /* IRAF ESI pipeline products                   */
 #define FTHARP        9      /* HARPS (S & N) pipeline products              */
 #define FTESPR       10      /* ESPRESSO pipeline products                   */
-#define FTCOMB       11      /* Combined spectrum                            */
-#define FTPYPE       12      /* PypeIt pipeline products                     */
+#define FTPYPE       11      /* PypeIt pipeline products                     */
+#define FTCOMB       12      /* Combined spectrum                            */
 
 /* Fit labelling */
 #define FITPOL        1      /* Polynomial fit                               */
