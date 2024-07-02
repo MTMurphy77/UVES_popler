@@ -34,7 +34,10 @@ double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, int opt,
      set here. The velocity offset is applied at 5000 Angstrom and the
      slope here is defined in units of (m/s)/Ang. over the range
      3000-10000Ang. */
-  double vd_offset=50.0,vd_slope=0.02,vd_echamp=50.0;
+  /* DEFAULT for UVES, HIRES etc.*/
+  /* double vd_offset=50.0,vd_slope=0.02,vd_echamp=50.0; */
+  /* TEMPORARY VALUES FOR ESPRESSO HE0515-4414 */
+  double vd_offset=20.0,vd_slope=0.005,vd_echamp=10.0;
   double vd_x=0.0,vd=0.0;
   double *x=NULL,*y=NULL;
   int    revdisp=0,sidx=0;
@@ -194,6 +197,8 @@ double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, int opt,
       /* Clean up */
       free(x); free(y);
     } else if (par->thar==2) {
+      /* NOT IMPLEMENTED FOR PYPEIT SO FAR. Stuff below is copied from
+	 HIRES REDUX file approach. */
       /* Stuff below is for using the wavelength polynomial read in from
 	 the ThAr files themselves. See comment in UVES_r2Dspec_hirx() */
       ndidx=2.0*(didx-spec->or[ord].wpol[NWPOL-2])/spec->or[ord].wpol[NWPOL-1];
@@ -224,16 +229,17 @@ double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, int opt,
   }
 
   /* Don't do anything else if only using ThAr frames. Also,
-     HIRES_REDUX and KODIAQ files are already in vacuum heliocentric frame, as
-     are MAGE files; IRAF-ESI files are in vacuum, but not
-     heliocentric frame. Just ensure that any user-supplied velocity
-     shifts are applied. */
-  /**********************/
-  /* TEMPORARY: TESTING IF ESPRESSO FILES ARE IN VAC. BARYCENTRIC */
-  /* ******************/
+     HIRES_REDUX, KODIAQ, MAGE, ESPRESSO and PypeIt files are already
+     in vacuum heliocentric frame; IRAF-ESI files are in vacuum, but
+     not heliocentric frame. Just ensure that any user-supplied
+     velocity shifts are applied. */
   if (par->thar==2 || spec->ftype==FTHIRX || spec->ftype==FTKODI ||
-      spec->ftype==FTMAGE || spec->ftype==FTESPR) {
+      spec->ftype==FTMAGE || spec->ftype==FTESPR || spec->ftype==FTPYPE) {
     vacwl=airwl;
+    /* !!!!!TEMPORARY!!!!! */
+    /* CONVERT BACK TO EARTH FRAME TO EXPLORE DETECTOR EFFECTS */
+    // vacwl-=vacwl*spec->vhel/C_C_K;
+    /*                                                         */
     vacwl+=vacwl*(spec->vshift+(vacwl-spec->refwav)*spec->vslope/1000.0)/C_C_K;
     return vacwl;
   }

@@ -334,13 +334,19 @@ int UVES_r1Dspec(cspectrum *cspec, params *par) {
 	  /* Check to make sure the basic set of columns can be read in later */
 	  if (fits_get_colname(infits,CASEINSEN,"WAVE",card,&col,&status))
 	    errormsg("UVES_r1Dspec(): Cannot find table column named %s\n\
-\tin binary table in FITS file\n\t%s","WAVE",cspec->file);
-	  if (fits_get_colname(infits,CASEINSEN,"FLUX",card,&col,&status))
-	    errormsg("UVES_r1Dspec(): Cannot find table column named %s\n\
-\tin binary table in FITS file\n\t%s","FLUX",cspec->file);
-	  if (fits_get_colname(infits,CASEINSEN,"ERR",card,&col,&status))
-	    errormsg("UVES_r1Dspec(): Cannot find table column named %s\n\
-\tin binary table in FITS file\n\t%s","ERR",cspec->file);
+\tin binary table in FITS file\n\t%s","WAVE_EL",cspec->file);
+	  if (fits_get_colname(infits,CASEINSEN,"FLUX",card,&col,&status)) {
+	    status=0;
+	    if (fits_get_colname(infits,CASEINSEN,"FLUX_EL",card,&col,&status))
+	      errormsg("UVES_r1Dspec(): Cannot find table column named %s\n\
+\tin binary table in FITS file\n\t%s","FLUX or FLUX_EL",cspec->file);
+	  }
+	  if (fits_get_colname(infits,CASEINSEN,"ERR",card,&col,&status)) {
+	    status=0;
+	    if (fits_get_colname(infits,CASEINSEN,"FLUX_EL",card,&col,&status))
+	      errormsg("UVES_r1Dspec(): Cannot find table column named %s\n\
+\tin binary table in FITS file\n\t%s","ERR or ERR_EL",cspec->file);
+	  }
 	}
 	/* If it's not an ESO Phase 3 spectrum then you have to assume some things */
 	else if (naxes<3) errormsg("UVES_r1Dspec(): Only %d arrays in file\n\
@@ -382,14 +388,24 @@ int UVES_r1Dspec(cspectrum *cspec, params *par) {
 	  errormsg("UVES_r1Dspec(): Cannot read wavelength array in file\n\
 \t%s",cspec->file);
 	/* Read in flux data */
-	if (ESO_PHASE3) fits_get_colname(infits,CASEINSEN,"FLUX",card,&col,&status);
+	if (ESO_PHASE3) {
+	  if (fits_get_colname(infits,CASEINSEN,"FLUX",card,&col,&status)) {
+	    status=0;
+	    fits_get_colname(infits,CASEINSEN,"FLUX_EL",card,&col,&status);
+	  }
+	}
 	else col=2;
 	if (fits_read_col(infits,TDOUBLE,col,1,1,cspec->np,&nulval,cspec->fl,
 			  &anynul,&status))
 	  errormsg("UVES_r1Dspec(): Cannot read flux array in file\n\
 \t%s",cspec->file);
 	/* Read in error data */
-	if (ESO_PHASE3) fits_get_colname(infits,CASEINSEN,"ERR",card,&col,&status);
+	if (ESO_PHASE3) {
+	  if (fits_get_colname(infits,CASEINSEN,"ERR",card,&col,&status)) {
+	    status=0;
+	    fits_get_colname(infits,CASEINSEN,"ERR_EL",card,&col,&status);
+	  }
+	}
 	else col=3;
 	if (fits_read_col(infits,TDOUBLE,col,1,1,cspec->np,&nulval,cspec->er,&anynul,&status))
 	  errormsg("UVES_r1Dspec(): Cannot read error array in file\n\

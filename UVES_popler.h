@@ -17,8 +17,8 @@
 #define ISWAP(a,b)    itmp=(a);(a)=(b);(b)=itmp
 
 /* Version number, date created and UVES_popler website */
-#define VERSION       1.05    /* Version number */
-#define DATECREATE    "28 Sep 2020"
+#define VERSION       1.06    /* Version number */
+#define DATECREATE    "02 Jul 2024"
 #define WWW           "www.astronomy.swin.edu.au/~mmurphy/UVES_popler.html"
 
 /* General (non-option) Parameters */
@@ -649,6 +649,8 @@ int UVES_combine_nocont(spectrum *spec, int nspec, cspectrum *cspec, int **comb,
 			int ncomb, int csidx, int ceidx, params *par);
 int UVES_combine_region(spectrum *spec, int nspec, cspectrum *cspec, params *par);
 int UVES_combine_spec(spectrum *spec, int nspec, cspectrum *cspec, params *par);
+int UVES_combine_ESPRESSOtrace(spectrum *spec, int nspec, cspectrum *cspec,
+		      params *par);
 int UVES_combsynthThAr(cspectrum *cspec, params *par);
 int UVES_confit(double *dat, double *err, int *sts, int ndat, int fit_typ,
 		int fit_ord, double lrejsig, double urejsig, double pctl,

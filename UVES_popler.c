@@ -34,7 +34,7 @@ General spectrum specifications:\n\
  -disp       =       TBD  : Dispersion in km/s or Angstroms (for lin. disp.)\n\
  -filetype   =       %1d    : File origin: UVES=0, IRAF=1, MAKEE=2, IRAFLSS=3,\n\
                             HIREDUX=4, ESOMERGED=5, KODIAQ=6, MAGE=7, IRAFESI=8,\n\
-                            HARPS=9, ESPRESSO=10, COMB=11, PYPEIT=12, mixed=-1\n\
+                            HARPS=9, ESPRESSO=10, PYPEIT=11, COMB=12, mixed=-1\n\
  -helio      =       %1d    : Input files in observed(0) or heliocentric(1) frame\n\
  -vacwl      =       %1d    : Input files in air (0) or vacuum (1) wavelengths\n\
  -zem        = %10.5lf : Emission redshift of QSO (if required for cont. fit)\n\
@@ -552,6 +552,7 @@ int main(int argc, char *argv[]) {
   */
 
   /* Redispers each order according to combined spectrum's wavelength scale */
+  // warnmsg("!!!!! UVES_wpol.c currently modified to shift back to Earth frame !!!!!!");
   for (i=0; i<nspec; i++) {
     if (!UVES_redispers(&(spec[i]),&cspec,spec[0].distort_seed,&par))
       errormsg("Unknown error returned from UVES_redispers()\n\
@@ -669,6 +670,15 @@ int main(int argc, char *argv[]) {
     }
   }
   nact_save=nact;
+
+  /**** TEMPORARY: Combine only alternate "orders" of an ESPRESSO
+	spectrum as a crude means to combining only spectra in one
+	trace */
+  /*
+  if (!UVES_combine_ESPRESSOtrace(spec,nspec,&cspec,&par))
+    errormsg("Problem combining ESPRESSO trace spectra in\n\
+\tUVES_combine_ESPRESSOtrace()");
+  */
 
   /* Replace ThAr information with synthetic emission line spectrum */
   /*
