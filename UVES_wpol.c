@@ -176,6 +176,30 @@ double UVES_wpol(spectrum *spec, int ord, double idx, long ranseed, int opt,
       0.5*(spec->or[ord].wl[i+1]-spec->or[ord].wl[i-1])*didx+
       (0.5*(spec->or[ord].wl[i+1]+spec->or[ord].wl[i-1])-spec->or[ord].wl[i])*didx*didx;
     break;
+  case FTPYPE:
+    if (par->thar<=1) {
+      /* Allocate memory for interpolation data array */
+      if ((x=darray(NINTP))==NULL)
+	errormsg("UVES_wpol(): Cannot allocate memory to x array of size %d",NINTP);
+      if ((y=darray(NINTP))==NULL)
+	errormsg("UVES_wpol(): Cannot allocate memory to y array of size %d",NINTP);
+      sidx=(MAX(0,(NINT((MIN((didx-(double)NINTP/2.0),
+			     ((double)(spec->or[ord].np-NINTP-1))))))));
+      for (i=0,j=sidx; i<NINTP; i++,j++) { x[i]=(double)j; y[i]=spec->or[ord].wl[j]; }
+      /* Find wavelength corresponding to input pixel */
+      if (!dpolint(x,y,NINTP,didx,&airwl,&dwl))
+	errormsg("UVES_wpol(): Polynomial interpolation with %d points\n\
+\tfailed when attempting to find wavelength corresponding to pixel %lf\n\
+\tin order %d of file %d,\n\t%s",NINTP,idx,ord+1,spec->id,spec->file);
+      /* Clean up */
+      free(x); free(y);
+    } else if (par->thar==2) {
+      /* Stuff below is for using the wavelength polynomial read in from
+	 the ThAr files themselves. See comment in UVES_r2Dspec_hirx() */
+      ndidx=2.0*(didx-spec->or[ord].wpol[NWPOL-2])/spec->or[ord].wpol[NWPOL-1];
+      airwl=legendre_eval(ndidx,spec->or[ord].wpol,spec->or[ord].nwpol);
+    }
+    break;
   }
 
   /* If user wants to apply a distortion, with randomized parameters,

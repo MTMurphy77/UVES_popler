@@ -186,6 +186,15 @@ int UVES_rFITSlist(char *infile, spectrum **spec, int *nspec, params *par) {
 	sprintf((*spec)[i].aberfile,"%s",(*spec)[i].abfile);
 	sprintf((*spec)[i].wlfile,"%s",(*spec)[i].file);
 	sprintf((*spec)[i].abwlfile,"%s",(*spec)[i].abfile);
+      } else if ((*spec)[i].ftype==FTPYPE) {
+	/* At the moment, PypeIt files can have any file name because
+	   no associations must be assumed between flux files and
+	   other files (e.g. error, wavelength); the flux, wavelength
+	   and error information is all in one file */
+	sprintf((*spec)[i].erfile,"%s",(*spec)[i].file);
+	sprintf((*spec)[i].aberfile,"%s",(*spec)[i].abfile);
+	sprintf((*spec)[i].wlfile,"%s",(*spec)[i].file);
+	sprintf((*spec)[i].abwlfile,"%s",(*spec)[i].abfile);
       } else if ((*spec)[i].ftype==FTMAGE) {
 	sprintf((*spec)[i].aberfile,"%s",(*spec)[i].abfile);
 	if ((cptr=strstr((*spec)[i].aberfile,"spec_cal"))==NULL)
@@ -286,6 +295,9 @@ int UVES_rFITSlist(char *infile, spectrum **spec, int *nspec, params *par) {
       } else if ((*spec)[i].ftype==FTKODI) {
 	errormsg("UVES_rFITSlist(): Do not know how to read in\n\
 \tThAr KODIAQ files for flux file\n\t%s",(*spec)[i].file);
+      } else if ((*spec)[i].ftype==FTPYPE) {
+	errormsg("UVES_rFITSlist(): Do not know how to read in\n\
+\tThAr PypeIt files for flux file\n\t%s",(*spec)[i].file);
       } else if ((*spec)[i].ftype==FTMAGE) {
 	errormsg("UVES_rFITSlist(): Do not know how to read in\n\
 \tThAr MagE files for flux file\n\t%s",(*spec)[i].file);

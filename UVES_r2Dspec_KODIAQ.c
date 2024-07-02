@@ -102,7 +102,7 @@ int UVES_r2Dspec_KODIAQ(spectrum *spec, params *par) {
      unity */
   spec->etime=1.0;
 
-  /* Read heliocentric velicity correction */
+  /* Read heliocentric velocity correction */
   /* Note: HIRES REDUX files are assumed to have already been
      corrected to the vacuum-heliocentric frame. KODIAQ files are
      normally combinations of multiple exposures, so it is not
