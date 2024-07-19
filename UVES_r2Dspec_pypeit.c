@@ -274,7 +274,7 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
     if (fits_get_colnum(infits, CASEINSEN, "OPT_WAVE", &wlcol, &status)) badorder=true;
     if (fits_get_colnum(infits, CASEINSEN, "OPT_COUNTS", &flcol, &status)) badorder=true;
     if (fits_get_colnum(infits, CASEINSEN, "OPT_COUNTS_SIG", &ercol, &status)) badorder=true;
-    if (!norm && fits_get_colnum(infits, CASEINSEN, "OPT_BLAZE", &blzcol, &status)) badorder=true;
+    if (!norm && fits_get_colnum(infits, CASEINSEN, "OPT_FLAT", &blzcol, &status)) badorder=true;
     /* Check if this is a bad order */
     if (badorder) {
       warnmsg("UVES_r2Dspec_pypeit(): Cannot find optimal extraction of %s %d\n\
