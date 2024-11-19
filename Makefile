@@ -13,8 +13,8 @@
 SHELL = tcsh
 CC = gcc -Os
 FC = gfortran -Os
-CFLAGS = -O2 -Wall -I./ -I${PGPLOT_DIR}
-LIBS = -ldl -lm -L/opt/homebrew/lib -lpng -lcurl -L${PGPLOT_DIR} -lcpgplot -lpgplot -lX11 -lcfitsio
+CFLAGS = -O2 -Wall -I./ -I${PGPLOT_DIR}/include
+LIBS = -ldl -lm -L/usr/local/lib -lpng -lcurl -L${PGPLOT_DIR} -lcpgplot -lpgplot -lX11 -lcfitsio
 
 TARGET = ${HOME}/bin/UVES_popler
 DEVTARGET = ${HOME}/bin/UVES_popler.dev
@@ -92,11 +92,11 @@ mrqfit_erffn.o: fit.h gamm.h memory.h const.h error.h
 mrqfit_gauss.o: fit.h memory.h error.h
 mrqfit_multierffn.o: fit.h gamm.h memory.h const.h error.h
 mrqmin.o: fit.h memory.h error.h
-pg_button.o: pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h utils.h
-pg_get_wins.o: pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h utils.h
+pg_button.o: pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h utils.h
+pg_get_wins.o: pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h utils.h
 pg_get_wins.o: error.h
-pg_open.o: pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h utils.h error.h
-pg_win_rename.o: pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h utils.h
+pg_open.o: pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h utils.h error.h
+pg_win_rename.o: pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h utils.h
 pg_win_rename.o: error.h
 pythag.o: fit.h
 qsort_dbleint.o: sort.h
@@ -111,141 +111,141 @@ svdcmp.o: fit.h memory.h error.h
 svdfit.o: fit.h memory.h error.h
 svdfit_chebyshev.o: error.h
 svdvar.o: memory.h error.h
-UVES_atmask.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_atmask.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_atmask.o: utils.h memory.h error.h const.h
-UVES_boxcar.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_boxcar.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_boxcar.o: utils.h stats.h const.h memory.h error.h
-UVES_chunk_cont.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_chunk_cont.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_chunk_cont.o: charstr.h utils.h const.h memory.h error.h
-UVES_combine_cont.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_combine_cont.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_combine_cont.o: charstr.h utils.h stats.h memory.h error.h
-UVES_combine_nocont.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_combine_nocont.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_combine_nocont.o: charstr.h utils.h stats.h memory.h error.h
-UVES_combine_region.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_combine_region.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_combine_region.o: charstr.h utils.h stats.h fit.h memory.h error.h
-UVES_combine_spec.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_combine_spec.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_combine_spec.o: charstr.h utils.h stats.h memory.h error.h
-UVES_combsynthThAr.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_combsynthThAr.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_combsynthThAr.o: charstr.h utils.h gamm.h const.h error.h
-UVES_confit.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_confit.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_confit.o: utils.h fit.h sort.h memory.h error.h
-UVES_cspec_cont.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_cspec_cont.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_cspec_cont.o: charstr.h utils.h stats.h const.h error.h
-UVES_cspec_stats.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_cspec_stats.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_cspec_stats.o: charstr.h utils.h memory.h stats.h const.h error.h
 UVES_hex2dec.o: error.h
-UVES_hirx_blzfit.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_hirx_blzfit.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_hirx_blzfit.o: charstr.h utils.h fit.h stats.h memory.h error.h
-UVES_init_cspec.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_init_cspec.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_init_cspec.o: charstr.h utils.h const.h memory.h error.h
-UVES_memspec.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_memspec.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_memspec.o: utils.h memory.h error.h
-UVES_merge_thar.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_merge_thar.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_merge_thar.o: charstr.h utils.h const.h memory.h error.h
-UVES_model_resol.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_model_resol.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_model_resol.o: charstr.h utils.h fit.h stats.h memory.h const.h error.h
-UVES_order_cont.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_order_cont.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_order_cont.o: charstr.h utils.h error.h
-UVES_order_rejsigedge.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_order_rejsigedge.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_order_rejsigedge.o: charstr.h utils.h memory.h stats.h error.h
-UVES_order_sigclip.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_order_sigclip.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_order_sigclip.o: charstr.h utils.h stats.h memory.h error.h
-UVES_order_stats.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_order_stats.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_order_stats.o: charstr.h utils.h stats.h memory.h error.h
-UVES_params_init.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_params_init.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_params_init.o: charstr.h utils.h
-UVES_params_set.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_params_set.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_params_set.o: charstr.h utils.h
-UVES_past_actions.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_past_actions.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_past_actions.o: charstr.h utils.h fit.h memory.h error.h
-UVES_pgenv_init.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_pgenv_init.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_pgenv_init.o: charstr.h utils.h
-UVES_pixscal.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_pixscal.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_pixscal.o: utils.h const.h
-UVES_plot_cspec.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_plot_cspec.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_plot_cspec.o: charstr.h utils.h fit.h stats.h sort.h gamm.h input.h
 UVES_plot_cspec.o: memory.h const.h error.h
-UVES_replace_envinstr.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_replace_envinstr.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_replace_envinstr.o: charstr.h utils.h memory.h error.h
-UVES_plot_replay.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_plot_replay.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_plot_replay.o: charstr.h utils.h input.h error.h
-UVES_popler.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_popler.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_popler.o: utils.h stats.h input.h error.h
-UVES_r1Dspec.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_r1Dspec.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_r1Dspec.o: utils.h const.h file.h memory.h error.h
-UVES_r2Dspec.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_r2Dspec.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_r2Dspec.o: utils.h stats.h memory.h error.h const.h
-UVES_r2Dspec_ESOmer.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_r2Dspec_ESOmer.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_r2Dspec_ESOmer.o: charstr.h utils.h astron.h const.h memory.h error.h
-UVES_r2Dspec_espresso.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_r2Dspec_espresso.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_r2Dspec_espresso.o: charstr.h utils.h stats.h memory.h error.h const.h
-UVES_r2Dspec_harps.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_r2Dspec_harps.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_r2Dspec_harps.o: charstr.h utils.h stats.h memory.h error.h const.h
-UVES_r2Dspec_hirx.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_r2Dspec_hirx.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_r2Dspec_hirx.o: charstr.h utils.h fit.h memory.h error.h const.h
-UVES_r2Dspec_iraf.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_r2Dspec_iraf.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_r2Dspec_iraf.o: charstr.h utils.h astron.h const.h memory.h error.h
-UVES_r2Dspec_iresi.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_r2Dspec_iresi.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_r2Dspec_iresi.o: charstr.h utils.h astron.h const.h memory.h error.h
-UVES_r2Dspec_irls.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_r2Dspec_irls.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_r2Dspec_irls.o: charstr.h utils.h astron.h const.h memory.h error.h
-UVES_r2Dspec_KODIAQ.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_r2Dspec_KODIAQ.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_r2Dspec_KODIAQ.o: charstr.h utils.h memory.h error.h
-UVES_r2Dspec_mage.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_r2Dspec_mage.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_r2Dspec_mage.o: charstr.h utils.h astron.h const.h memory.h error.h
-UVES_r2Dspec_makee.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_r2Dspec_makee.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_r2Dspec_makee.o: charstr.h utils.h memory.h const.h error.h
-UVES_r2Dspec_pypeit.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_r2Dspec_pypeit.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_r2Dspec_pypeit.o: charstr.h utils.h fit.h memory.h error.h const.h
-UVES_ratmask.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_ratmask.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_ratmask.o: utils.h memory.h file.h error.h
-UVES_redispers.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_redispers.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_redispers.o: charstr.h utils.h memory.h error.h
-UVES_replay_control.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_replay_control.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_replay_control.o: charstr.h utils.h input.h stats.h memory.h error.h
 UVES_replay_control.o: const.h
-UVES_rescale_region.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_rescale_region.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_rescale_region.o: charstr.h utils.h stats.h fit.h memory.h error.h
-UVES_revwpol.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_revwpol.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_revwpol.o: utils.h fit.h memory.h error.h
-UVES_rinputfile.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_rinputfile.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_rinputfile.o: charstr.h utils.h file.h error.h
-UVES_rFITSlist.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_rFITSlist.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_rFITSlist.o: charstr.h utils.h file.h error.h
-UVES_rMacmap.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_rMacmap.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_rMacmap.o: utils.h memory.h file.h error.h
-UVES_rscale.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_rscale.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_rscale.o: utils.h file.h error.h
-UVES_rUPLfile.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_rUPLfile.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_rUPLfile.o: charstr.h utils.h file.h error.h
-UVES_rvshift.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_rvshift.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_rvshift.o: utils.h file.h error.h
-UVES_scale.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_scale.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_scale.o: utils.h error.h
-UVES_select_subspec.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_select_subspec.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_select_subspec.o: charstr.h utils.h memory.h error.h
-UVES_set_wavelen_scale.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_set_wavelen_scale.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_set_wavelen_scale.o: charstr.h utils.h const.h memory.h error.h
-UVES_skysub.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_skysub.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_skysub.o: utils.h memory.h error.h
-UVES_synthThAr.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_synthThAr.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_synthThAr.o: charstr.h utils.h gamm.h const.h error.h
-UVES_thar_sigarray.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_thar_sigarray.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_thar_sigarray.o: charstr.h utils.h memory.h error.h
-UVES_undo_lastact.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_undo_lastact.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_undo_lastact.o: charstr.h utils.h error.h
-UVES_vhelio.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_vhelio.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_vhelio.o: utils.h astron.h const.h error.h
-UVES_wDATfile.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_wDATfile.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_wDATfile.o: charstr.h utils.h file.h error.h
-UVES_wFITSfile.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_wFITSfile.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_wFITSfile.o: charstr.h utils.h memory.h error.h
-UVES_wrawFITS.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_wrawFITS.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_wrawFITS.o: charstr.h utils.h memory.h error.h
-UVES_wUPLfile.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h
+UVES_wUPLfile.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h
 UVES_wUPLfile.o: charstr.h utils.h file.h error.h
-UVES_wpol.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_wpol.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_wpol.o: utils.h fit.h stats.h memory.h const.h error.h
-UVES_tmpfit.o: UVES_popler.h pg_plot.h /usr/local/pgplot/cpgplot.h charstr.h
+UVES_tmpfit.o: UVES_popler.h pg_plot.h /usr/local/opt/pgplot/include/cpgplot.h charstr.h
 UVES_tmpfit.o: utils.h fit.h memory.h const.h error.h
 zbrent.o: fit.h error.h
