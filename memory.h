@@ -3,6 +3,7 @@ MEMORY.H: Include file for allocation of memory routines.
 ***************************************************************************/
 
 /* INCLUDE FILES */
+#include <stdbool.h>
 
 /* DEFINITIONS */
 
@@ -13,6 +14,7 @@ typedef struct DblePair{
 } dblepair;
 
 /* PROTOTYPES */
+bool *barray(unsigned long n);
 char *carray(unsigned long n);
 char **cmatrix(unsigned long n, unsigned long m);
 double *darray(unsigned long n);

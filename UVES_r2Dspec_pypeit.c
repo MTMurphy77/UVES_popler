@@ -20,6 +20,7 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
 //  double   nrmt[2],onorm=0.0;
   double   dwl=0.0;
   double   *blzfit=NULL;
+  bool     *mskarr=NULL;
 //  double   *coeff=NULL,*coeffo=NULL;
   bool     badorder=false,longslit=false;
 //  long     nrows=0,No=0;
@@ -28,7 +29,7 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
   int      hdutype=0,hdunum=0,status=0,anynul=0;
   int      i=0,j=0,k=0;
   int      thisorder=0,norm=0;
-  int      wlcol=0,flcol=0,ercol=0,blzcol=0;
+  int      wlcol=0,flcol=0,ercol=0,blzcol=0,mskcol=0;
 //  int      *ord=NULL;
   char*    slitstr="\0";
   char     pypeline[FLEN_KEYWORD]="Echelle";
@@ -216,6 +217,10 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
     if ((spec->or[i].res=darray(spec->or[i].np))==NULL)
       errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for resolution\n\
 \tarray of %s %d of size %d for file\n\t%s",slitstr,i+1,spec->or[i].np,spec->file);
+    /* Allocate memory for mask */
+    if ((mskarr=barray(spec->or[i].np))==NULL)
+      errormsg("UVES_r2Dspec_pypeit(): Cannot allocate memory for pixel mask\n\
+\tarray of size %d for file\n\t%s",spec->or[0].np,spec->file);
     if (par->thar<=1 && !norm) {
       /* Allocate memory for matrix to hold blaze */
       if ((blzfit=darray(spec->or[i].np))==NULL)
@@ -274,6 +279,7 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
     if (fits_get_colnum(infits, CASEINSEN, "OPT_WAVE", &wlcol, &status)) badorder=true;
     if (fits_get_colnum(infits, CASEINSEN, "OPT_COUNTS", &flcol, &status)) badorder=true;
     if (fits_get_colnum(infits, CASEINSEN, "OPT_COUNTS_SIG", &ercol, &status)) badorder=true;
+    if (fits_get_colnum(infits, CASEINSEN, "OPT_MASK", &mskcol, &status)) badorder=true;
     if (!norm && fits_get_colnum(infits, CASEINSEN, "OPT_FLAT", &blzcol, &status)) badorder=true;
     /* Check if this is a bad order */
     if (badorder) {
@@ -286,6 +292,11 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
         continue;
     }
     /* If we make it to here, then we have found the columns for this order */
+    /* Read in status information */
+    if (fits_read_col(infits,TLOGICAL,mskcol,1,1,spec->or[i].np,&nulval,
+              mskarr,&anynul,&status))
+      errormsg("UVES_r2Dspec_pypeit(): Cannot read mask array for %s %d\n\
+\tin file\n\t%s",slitstr,thisorder,spec->file);
     /* Read in flux information */
     if (fits_read_col(infits,TDOUBLE,flcol,1,1,spec->or[i].np,&nulval,
               spec->or[i].fl,&anynul,&status))
@@ -298,7 +309,7 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
 \tin file\n\t%s",slitstr,thisorder,spec->file);
     /* Any zero values will be assigned -INFIN and marked as clipped during reading */
     for (j=0; j<spec->or[i].np; j++) {
-      if (spec->or[i].er[j]<=0.0) {
+      if ((spec->or[i].er[j]<=0.0) || (!mskarr[j])) {  /* True=good for mskarr*/
         spec->or[i].st[j]=RCLIP;
         spec->or[i].er[j]=-INFIN;
       }
@@ -323,6 +334,7 @@ int UVES_r2Dspec_pypeit(spectrum *spec, params *par) {
   }
   /* Clean up */
   free(blzfit);
+  free(mskarr);
 
   /* Must treat the special case for PypeIt files where wavelengths are
      set to zero if there's no information from the chip at those
