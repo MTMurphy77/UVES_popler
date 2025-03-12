@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
   int       nact=0;      /* Number of historical actions */
   int       nact_save=0,cact=0,v074switch=0,allUVES=1,status=0;
   int       i=0,j=0;
-  char      infile[LNGSTRLEN]="\0";
+  char      infile[HUGESTRLEN]="\0";
   char      query[QUERYLEN]="\0";
   char      *cptr;
   action    *act=NULL;   /* Array of historical actions to be carried out */
@@ -301,7 +301,7 @@ int main(int argc, char *argv[]) {
     }
     else if (!strcmp(argv[i],"-distort")) par.distort=1;
     else if (!access(argv[i],R_OK)) {
-      if (strlen(argv[i])<=LNGSTRLEN) strcpy(infile,argv[i]);
+      if (strlen(argv[i])<=HUGESTRLEN) strcpy(infile,argv[i]);
       else errormsg("Input file name too long: %s",argv[i]);
     }
     else errormsg("File %s does not exist",argv[i]);

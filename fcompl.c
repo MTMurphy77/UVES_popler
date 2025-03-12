@@ -13,7 +13,7 @@
 void fcompl(char *oname) {
 
   int            i, n, nmatch;
-  char           *buf, name[VLNGSTRLEN], dir[VLNGSTRLEN], match[VLNGSTRLEN];
+  char           *buf, name[VVVLNGSTRLEN], dir[VVVLNGSTRLEN], match[VVVLNGSTRLEN];
   DIR            *dirp;
   struct dirent  *dp;
 

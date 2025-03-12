@@ -50,7 +50,7 @@ int UVES_redispers(spectrum *spec, cspectrum *cspec, long ranseed, params *par) 
   int      ntdat=0,nctdat=0,ctst=0;
   int      sidx=0,eidx=0;
   int      i=0,j=0,k=0,l=0;
-  char     array_name[NAMELEN]="\0",filename[LNGSTRLEN]="\0";
+  char     array_name[NAMELEN]="\0",filename[HUGESTRLEN]="\0";
 
   /* TEMPORARY: The following to be used when creating ASCII spectra
      of individual orders */

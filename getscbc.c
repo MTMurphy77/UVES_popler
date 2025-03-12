@@ -51,7 +51,7 @@ int getscbc(char *s, int size) {
   int          i, old_icanon, old_echo;
   static int   ihist=0, nhist=0;
   char         *buf;
-  static char  hist[N_HIST][VLNGSTRLEN];
+  static char  hist[N_HIST][VVVLNGSTRLEN];
 
   /* Turn off line by line mode */
   if (io_tio_set_flag_c_lflag(0, ICANON, 0, &old_icanon)) {

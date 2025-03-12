@@ -13,7 +13,7 @@ int UVES_rFITSlist(char *infile, spectrum **spec, int *nspec, params *par) {
 
   int    i=0;
   long   ranseed=0;
-  char   buffer[VLNGSTRLEN]="\0";
+  char   buffer[HUGESTRLEN]="\0";
   char   *cptr;
   FILE   *data_file=NULL;
 
@@ -22,7 +22,7 @@ int UVES_rFITSlist(char *infile, spectrum **spec, int *nspec, params *par) {
 			   infile,5))==NULL)
     errormsg("UVES_rFITSlist(): Can not open file %s",infile);
   /* Read in first line  */
-  i++; if ((cptr=fgets(buffer,VLNGSTRLEN,data_file))==NULL) {
+  i++; if ((cptr=fgets(buffer,HUGESTRLEN,data_file))==NULL) {
     fclose(data_file);
     errormsg("UVES_rFITSlist(): Problem reading file %s on line %d",infile,i);
   }
@@ -37,7 +37,7 @@ int UVES_rFITSlist(char *infile, spectrum **spec, int *nspec, params *par) {
 	       1,infile);
   }
   /* See if it is a list of valid FITS files */
-  while ((cptr=fgets(buffer,VLNGSTRLEN,data_file))!=NULL) {
+  while ((cptr=fgets(buffer,HUGESTRLEN,data_file))!=NULL) {
     /* Check for absolute path names or environment variables ... a weak check anyway */
     if (strncmp(buffer,"/",1) && strncmp(buffer,"$",1)) {
       fclose(data_file);
@@ -62,7 +62,7 @@ int UVES_rFITSlist(char *infile, spectrum **spec, int *nspec, params *par) {
 
   /* Read in list of names of FITS files and assign identity numbers */
   for (i=0; i<*nspec; i++) {
-    cptr=fgets(buffer,VLNGSTRLEN,data_file);
+    cptr=fgets(buffer,HUGESTRLEN,data_file);
     if (par->filetype==FTMIX) {
       if (sscanf(buffer,"%s %d",(*spec)[i].file,&((*spec)[i].ftype))!=2) {
 	fclose(data_file);

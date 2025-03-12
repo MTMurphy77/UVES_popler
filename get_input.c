@@ -17,7 +17,7 @@ void get_input(char *query, char *fmt, ...) {
   int         *ip, i, flag, error=0;
   float       *fp;
   double      *dp;
-  char        *p, *cp, deffmt[VLNGSTRLEN], answer[VLNGSTRLEN], *pans;
+  char        *p, *cp, deffmt[VVVLNGSTRLEN], answer[VVVLNGSTRLEN], *pans;
   va_list     ap;
   
   /* Initialise argument list */

@@ -16,7 +16,7 @@ int UVES_rinputfile(char *infile, spectrum **spec, int *nspec, action **act,
   int    idx=0;
   int    i=0;
   char   *cptr;
-  char   buffer[VLNGSTRLEN]="\0";
+  char   buffer[HUGESTRLEN]="\0";
   FILE   *data_file=NULL;
 
   /** Open input file, see if it's a UPL file or a list of FITS files
@@ -26,11 +26,11 @@ int UVES_rinputfile(char *infile, spectrum **spec, int *nspec, action **act,
     errormsg("UVES_rinputfile(): Can not open file %s",infile);
   
   /* Read in first line from input file to decide its nature */
-  idx++; if (fgets(buffer,VLNGSTRLEN,data_file)==NULL) {
+  idx++; if (fgets(buffer,HUGESTRLEN,data_file)==NULL) {
     fclose(data_file);
     errormsg("UVES_rinputfile(): Problem reading file %s on line %d",infile,idx);
   }
-  if (!strncmp(buffer,"SIMPLE  =",8) || strisnum(buffer,VLNGSTRLEN,0)) {
+  if (!strncmp(buffer,"SIMPLE  =",8) || strisnum(buffer,HUGESTRLEN,0)) {
     /* Single file specified that looks suspiciously like a FITS file
        or an ASCII data file */
     fclose(data_file);
@@ -41,7 +41,7 @@ int UVES_rinputfile(char *infile, spectrum **spec, int *nspec, action **act,
     /* Set the combined spectrum file name and path */
     sprintf(cspec->file,"%s",infile);
     if ((cptr=strrchr(infile,'/'))==NULL) {
-      if (getcwd(cspec->path,VLNGSTRLEN)==NULL)
+      if (getcwd(cspec->path,VVVLNGSTRLEN)==NULL)
 	errormsg("UVES_rinputfile(): Could not get path of\n\
 \tcurrent working directory");
       sprintf(cspec->abfile,"%s",infile);

@@ -343,9 +343,9 @@ typedef struct EchOrder {
 
 typedef struct SkySpec {
   int      nor;                   /* Number of orders                        */
-  char     path[LNGSTRLEN];       /* Full path of sky flux file              */
-  char     file[LNGSTRLEN];       /* Name of flux file                       */
-  char     abfile[LNGSTRLEN];     /* Name of flux file without full path     */
+  char     path[VVVLNGSTRLEN];    /* Full path of sky flux file              */
+  char     file[HUGESTRLEN];      /* Name of flux file                       */
+  char     abfile[VVVLNGSTRLEN];  /* Name of flux file without full path     */
   echorder *or;                   /* Pointer to echelle order array          */
 } skyspec;
 
@@ -435,18 +435,18 @@ typedef struct Spectrum {
   int      wc_encoder;            /* Grating encoder value for wavcal exp.   */
   long     distort_seed;          /* Random number seed for wavelength       */
                                   /*   distortions                           */
-  char     path[LNGSTRLEN];       /* Full path of flux and error file        */
-  char     file[LNGSTRLEN];       /* Name of flux file                       */
-  char     abfile[LNGSTRLEN];     /* Name of flux file without full path     */
-  char     erfile[LNGSTRLEN];     /* Name of error array file                */
-  char     aberfile[LNGSTRLEN];   /* Name of error file without full path    */
-  char     thfile[LNGSTRLEN];     /* Name of ThAr file                       */
-  char     abthfile[LNGSTRLEN];   /* Name of ThAr file without full path     */
-  char     wlfile[LNGSTRLEN];     /* Name of wavelength solution array file  */
-  char     abwlfile[LNGSTRLEN];   /* Name of wavelen. file without full path */
-  char     arfile[LNGSTRLEN];     /* Name of archived file                   */
-  char     wlarfile[LNGSTRLEN];   /* Name of wavelength sol. archived file   */
-  char     tharfile[LNGSTRLEN];   /* Name of ThAr archived file              */
+  char     path[VVVLNGSTRLEN];    /* Full path of flux and error file        */
+  char     file[HUGESTRLEN];      /* Name of flux file                       */
+  char     abfile[VVVLNGSTRLEN];  /* Name of flux file without full path     */
+  char     erfile[VVVLNGSTRLEN];  /* Name of error array file                */
+  char     aberfile[VVVLNGSTRLEN];/* Name of error file without full path    */
+  char     thfile[VVVLNGSTRLEN];  /* Name of ThAr file                       */
+  char     abthfile[VVVLNGSTRLEN];/* Name of ThAr file without full path     */
+  char     wlfile[VVVLNGSTRLEN];  /* Name of wavelength solution array file  */
+  char     abwlfile[VVVLNGSTRLEN];/* Name of wavelen. file without full path */
+  char     arfile[HUGESTRLEN];     /* Name of archived file                   */
+  char     wlarfile[HUGESTRLEN];   /* Name of wavelength sol. archived file   */
+  char     tharfile[HUGESTRLEN];   /* Name of ThAr archived file              */
   char     obj[NAMELEN];          /* Object name                             */
   char     progid[NAMELEN];       /* Program ID                              */
   char     dprtech[NAMELEN];      /* DPR.TECH                                */
@@ -498,9 +498,9 @@ typedef struct CSpectrum {
   int      *nccb;                 /* No. contribut. pxls to comb. after clip */
   int      *st;                   /* Status of each pixel                    */
   int      *ost;                  /* Old status before last action           */
-  char     path[LNGSTRLEN];       /* Path for file for filetype=FTCOMB       */
-  char     file[LNGSTRLEN];       /* Original filename for filetype=FTCOMB   */
-  char     abfile[LNGSTRLEN];     /* Same as above but without full path     */
+  char     path[VVVLNGSTRLEN];    /* Path for file for filetype=FTCOMB       */
+  char     file[HUGESTRLEN];      /* Original filename for filetype=FTCOMB   */
+  char     abfile[VVVLNGSTRLEN];  /* Same as above but without full path     */
   char     obj[NAMELEN];          /* Object name                             */
   char     DATfile[LNGSTRLEN];    /* UVES_popler DAT file name               */
   char     FITSfile[LNGSTRLEN];   /* UVES_popler FITS file name              */
